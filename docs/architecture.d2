@@ -1,0 +1,100 @@
+# EventZilla BI — data-platform architecture (D2 source)
+# Render: d2 docs/architecture.d2 docs/architecture.svg
+# Also see docs/architecture.dot (Graphviz equivalent).
+
+direction: down
+
+classes: {
+  ingest: {
+    style: {
+      fill: "#E8EEF7"
+      stroke: "#4169E1"
+      border-radius: 8
+    }
+  }
+  store: {
+    style: {
+      fill: "#FEF3E2"
+      stroke: "#B7791F"
+      border-radius: 8
+    }
+  }
+  ml: {
+    style: {
+      fill: "#FDECEA"
+      stroke: "#EE4C2C"
+      border-radius: 8
+    }
+  }
+  serve: {
+    style: {
+      fill: "#E6F4EA"
+      stroke: "#1A7F37"
+      border-radius: 8
+    }
+  }
+  ops: {
+    style: {
+      fill: "#F3EAF7"
+      stroke: "#7B42BC"
+      border-radius: 8
+    }
+  }
+}
+
+sources: "3 source systems\nevent · booking · marketing" {
+  class: ingest
+}
+talend: "Talend ETL\ntransformations" {
+  class: ingest
+}
+airflow: "Airflow\nreliable ingestion" {
+  class: ingest
+}
+dw: "PostgreSQL star-schema DW\nbusiness questions, not source schemas" {
+  class: store
+}
+prophet: "Prophet\n demand forecasting\nMAPE < 15%" {
+  class: ml
+}
+anomaly: "statsmodels\nanomaly detection" {
+  class: ml
+}
+sklearn: "scikit-learn\nclassification" {
+  class: ml
+}
+mlflow: "MLflow\ntracking" {
+  class: ml
+}
+nl: "NL-to-SQL interface\nanyone can explore" {
+  class: serve
+}
+dash: "Angular dashboard\n4 role-based profiles" {
+  class: serve
+}
+pbi: "Power BI\ndeep-dive analytics" {
+  class: serve
+}
+microsvc: "11 microservices\nDocker behind nginx" {
+  class: ops
+}
+obs: "Monitoring + ML retraining\nautomated" {
+  class: ops
+}
+
+sources -> talend: extract
+talend -> airflow: load
+airflow -> dw: ingest
+dw -> prophet: series
+dw -> anomaly: series
+dw -> sklearn: features
+prophet -> mlflow: track
+anomaly -> mlflow: track
+sklearn -> mlflow: track
+mlflow -> nl: serve
+dw -> nl: query
+nl -> dash: answers
+dw -> pbi: analyze
+microsvc -> dash: deliver
+microsvc -> nl: host
+obs -> microsvc: watch

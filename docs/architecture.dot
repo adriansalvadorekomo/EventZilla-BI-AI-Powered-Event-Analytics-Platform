@@ -1,0 +1,57 @@
+// EventZilla BI — data-platform architecture (Graphviz source)
+// Render: dot -Tsvg docs/architecture.dot -o docs/architecture-gv.svg
+// Also see docs/architecture.d2 (D2 equivalent, rendered as docs/architecture.svg).
+
+digraph eventzilla {
+  rankdir=TB;
+  splines=ortho;
+  nodesep=0.5;
+  ranksep=0.7;
+  fontname="Helvetica";
+  node [fontname="Helvetica" fontsize=11 style="filled,rounded" shape=box];
+  edge [fontname="Helvetica" fontsize=10];
+
+  sources [label="3 source systems\nevent · booking · marketing"
+           fillcolor="#E8EEF7" color="#4169E1" penwidth=2];
+  talend  [label="Talend ETL\ntransformations"
+           fillcolor="#E8EEF7" color="#4169E1" penwidth=2];
+  airflow [label="Airflow\nreliable ingestion"
+           fillcolor="#E8EEF7" color="#4169E1" penwidth=2];
+  dw      [label="PostgreSQL star-schema DW\nbusiness questions, not source schemas"
+           fillcolor="#FEF3E2" color="#B7791F" penwidth=2 shape=cylinder];
+  prophet [label="Prophet\ndemand forecasting, MAPE < 15%"
+           fillcolor="#FDECEA" color="#EE4C2C" penwidth=2];
+  anomaly [label="statsmodels\nanomaly detection"
+           fillcolor="#FDECEA" color="#EE4C2C" penwidth=2];
+  sklearn [label="scikit-learn\nclassification"
+           fillcolor="#FDECEA" color="#EE4C2C" penwidth=2];
+  mlflow  [label="MLflow\ntracking"
+           fillcolor="#FDECEA" color="#EE4C2C" penwidth=2];
+  nl      [label="NL-to-SQL interface\nanyone can explore"
+           fillcolor="#E6F4EA" color="#1A7F37" penwidth=2];
+  dash    [label="Angular dashboard\n4 role-based profiles"
+           fillcolor="#E6F4EA" color="#1A7F37" penwidth=2];
+  pbi     [label="Power BI\ndeep-dive analytics"
+           fillcolor="#E6F4EA" color="#1A7F37" penwidth=2];
+  microsvc [label="11 microservices\nDocker behind nginx"
+           fillcolor="#F3EAF7" color="#7B42BC" penwidth=2];
+  obs     [label="Monitoring + ML retraining\nautomated"
+           fillcolor="#F3EAF7" color="#7B42BC" penwidth=2];
+
+  sources -> talend [label="extract"];
+  talend -> airflow [label="load"];
+  airflow -> dw [label="ingest"];
+  dw -> prophet [label="series"];
+  dw -> anomaly [label="series"];
+  dw -> sklearn [label="features"];
+  prophet -> mlflow [label="track"];
+  anomaly -> mlflow [label="track"];
+  sklearn -> mlflow [label="track"];
+  mlflow -> nl [label="serve"];
+  dw -> nl [label="query"];
+  nl -> dash [label="answers"];
+  dw -> pbi [label="analyze"];
+  microsvc -> dash [label="deliver"];
+  microsvc -> nl [label="host"];
+  obs -> microsvc [label="watch"];
+}
