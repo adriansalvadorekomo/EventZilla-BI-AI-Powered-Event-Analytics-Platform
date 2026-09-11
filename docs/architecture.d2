@@ -1,100 +1,129 @@
 # EventZilla BI — data-platform architecture (D2 source)
 # Render: d2 docs/architecture.d2 docs/architecture.svg
-# Also see docs/architecture.dot (Graphviz equivalent).
+# Also see docs/architecture.dot (Graphviz) and docs/architecture.mmd (Mermaid).
 
-direction: down
+direction: right
 
-classes: {
-  ingest: {
+"Source Systems": {
+  sources: "Event · Booking · Marketing\n3 source systems" {
     style: {
       fill: "#E8EEF7"
       stroke: "#4169E1"
-      border-radius: 8
     }
   }
-  store: {
-    style: {
-      fill: "#FEF3E2"
-      stroke: "#B7791F"
-      border-radius: 8
-    }
-  }
-  ml: {
+}
+
+"Data Platform": {
+  direction: right
+
+  talend: "Talend ETL\njob_master_sa · job_master_dw" {
     style: {
       fill: "#FDECEA"
-      stroke: "#EE4C2C"
-      border-radius: 8
+      stroke: "#FF3621"
     }
   }
-  serve: {
+
+  airflow: "Airflow\nAUTOMATIZATION" {
+    style: {
+      fill: "#FDECEA"
+      stroke: "#FF3621"
+    }
+  }
+
+  dw: "PostgreSQL star-schema DW\nFact_Revenues + 13 dimensions" {
+    style: {
+      fill: "#FDECEA"
+      stroke: "#FF3621"
+    }
+  }
+
+  talend -> airflow: load
+  airflow -> dw: ingest
+}
+
+"Machine Learning": {
+  direction: right
+
+  prophet: "Prophet\ndemand forecasting · MAPE < 15%" {
+    style: {
+      fill: "#FFF4E5"
+      stroke: "#C77D0A"
+    }
+  }
+
+  anomaly: "statsmodels\nanomaly detection" {
+    style: {
+      fill: "#FFF4E5"
+      stroke: "#C77D0A"
+    }
+  }
+
+  sklearn: "scikit-learn\nclassification" {
+    style: {
+      fill: "#FFF4E5"
+      stroke: "#C77D0A"
+    }
+  }
+
+  mlflow: "MLflow\ntracking · registry" {
+    style: {
+      fill: "#FFF4E5"
+      stroke: "#C77D0A"
+    }
+  }
+
+  prophet -> mlflow: track
+  anomaly -> mlflow: track
+  sklearn -> mlflow: track
+}
+
+Serving: {
+  nl: "NL-to-SQL chatbot\nLLaMA 3.3" {
     style: {
       fill: "#E6F4EA"
       stroke: "#1A7F37"
-      border-radius: 8
     }
   }
-  ops: {
+
+  dash: "Angular dashboard\n4 role profiles" {
+    style: {
+      fill: "#E6F4EA"
+      stroke: "#1A7F37"
+    }
+  }
+
+  pbi: "Power BI\ndeep-dive analytics" {
+    style: {
+      fill: "#E6F4EA"
+      stroke: "#1A7F37"
+    }
+  }
+}
+
+"Operational Components": {
+  microsvc: "11 microservices\nDocker behind nginx" {
     style: {
       fill: "#F3EAF7"
       stroke: "#7B42BC"
-      border-radius: 8
+    }
+  }
+
+  obs: "Monitoring + retraining\nautomated" {
+    style: {
+      fill: "#F3EAF7"
+      stroke: "#7B42BC"
     }
   }
 }
 
-sources: "3 source systems\nevent · booking · marketing" {
-  class: ingest
-}
-talend: "Talend ETL\ntransformations" {
-  class: ingest
-}
-airflow: "Airflow\nreliable ingestion" {
-  class: ingest
-}
-dw: "PostgreSQL star-schema DW\nbusiness questions, not source schemas" {
-  class: store
-}
-prophet: "Prophet\n demand forecasting\nMAPE < 15%" {
-  class: ml
-}
-anomaly: "statsmodels\nanomaly detection" {
-  class: ml
-}
-sklearn: "scikit-learn\nclassification" {
-  class: ml
-}
-mlflow: "MLflow\ntracking" {
-  class: ml
-}
-nl: "NL-to-SQL interface\nanyone can explore" {
-  class: serve
-}
-dash: "Angular dashboard\n4 role-based profiles" {
-  class: serve
-}
-pbi: "Power BI\ndeep-dive analytics" {
-  class: serve
-}
-microsvc: "11 microservices\nDocker behind nginx" {
-  class: ops
-}
-obs: "Monitoring + ML retraining\nautomated" {
-  class: ops
-}
-
-sources -> talend: extract
-talend -> airflow: load
-airflow -> dw: ingest
-dw -> prophet: series
-dw -> anomaly: series
-dw -> sklearn: features
-prophet -> mlflow: track
-anomaly -> mlflow: track
-sklearn -> mlflow: track
-mlflow -> nl: serve
-dw -> nl: query
-nl -> dash: answers
-dw -> pbi: analyze
-microsvc -> dash: deliver
-microsvc -> nl: host
-obs -> microsvc: watch
+"Source Systems".sources -> "Data Platform".talend: extract
+"Data Platform".dw -> "Machine Learning".prophet: series
+"Data Platform".dw -> "Machine Learning".anomaly: series
+"Data Platform".dw -> "Machine Learning".sklearn: features
+"Machine Learning".mlflow -> Serving.nl: serve
+"Data Platform".dw -> Serving.nl: query
+"Data Platform".dw -> Serving.pbi: analyze
+Serving.nl -> Serving.dash: answers
+"Operational Components".microsvc -> Serving.dash: deliver
+"Operational Components".microsvc -> Serving.nl: host
+"Operational Components".obs -> "Operational Components".microsvc: watch
