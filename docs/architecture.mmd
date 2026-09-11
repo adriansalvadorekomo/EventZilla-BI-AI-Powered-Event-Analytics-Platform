@@ -1,0 +1,68 @@
+%% EventZilla BI — system-design flow (Mermaid source)
+%% Rendered natively by GitHub from the README code block.
+%% Also see docs/architecture.d2 (D2) and docs/architecture.dot (Graphviz).
+
+flowchart TB
+    subgraph SRC["📥 Source Systems"]
+        EV[("Events")]
+        BK[("Bookings")]
+        MK[("Marketing")]
+    end
+
+    subgraph INGEST["🔄 Ingestion & ETL"]
+        TA(["Talend<br/>job_master_sa · job_master_dw"])
+        AF(["Airflow<br/>AUTOMATIZATION"])
+    end
+
+    subgraph DW["🗄️ Warehouse — PostgreSQL"]
+        ST[("Staging")]
+        FC[("Fact_Revenues<br/>+ 13 dimensions")]
+    end
+
+    subgraph ML["🤖 ML & MLOps"]
+        PR("Prophet<br/>forecast · MAPE < 15%")
+        AN("statsmodels<br/>anomaly detection")
+        SK("scikit-learn<br/>classification")
+        MF(["MLflow<br/>registry"])
+        RN(["n8n<br/>retraining"])
+    end
+
+    subgraph SERVE["🖥️ Serving"]
+        FA("FastAPI<br/>api/main.py")
+        FL("Flask<br/>legacy · app.py")
+        NLSQL("NL-to-SQL chatbot<br/>LLaMA 3.3")
+        NG("Angular<br/>4 role profiles")
+        PBI("Power BI<br/>deep-dive")
+    end
+
+    subgraph OPS["⚙️ Platform"]
+        NX(["nginx<br/>reverse proxy"])
+        PM(["Prometheus<br/>+ Grafana"])
+        DC(["Docker Compose<br/>11 microservices"])
+    end
+
+    EV --> TA
+    BK --> TA
+    MK --> TA
+    TA --> AF
+    AF --> ST
+    ST --> FC
+    FC --> PR
+    FC --> AN
+    FC --> SK
+    PR --> MF
+    AN --> MF
+    SK --> MF
+    MF --> NLSQL
+    FC --> NLSQL
+    NLSQL --> FA
+    FA --> NG
+    FL --> NG
+    FC --> PBI
+    DC -.->|"hosts"| FA
+    DC -.->|"hosts"| NG
+    DC -.->|"hosts"| NLSQL
+    NX -.->|"routes"| FA
+    NX -.->|"routes"| NG
+    PM -.->|"watches"| DC
+    RN -.->|"retrains"| MF
