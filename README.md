@@ -1,8 +1,12 @@
-# EventZilla BI — Event Analytics Platform
+# EventZilla BI — AI-Powered Event Analytics Platform
 
 **End-to-end event analytics platform** — star-schema warehouse, ETL, ML forecasting/anomaly detection, NL-to-SQL, and containerized microservices.
 
 > Academic team project (6 people). My scope: integration, Docker/nginx delivery, and chatbot/API fixes.
+
+<p>
+  <a href="https://deepwiki.com/adriansalvadorekomo/Esprit-PABI-4ERPBI6-2526-EventZella"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" /></a>
+</p>
 
 ---
 
