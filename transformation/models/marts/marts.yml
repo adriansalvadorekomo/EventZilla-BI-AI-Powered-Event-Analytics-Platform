@@ -17,6 +17,8 @@ models:
   - name: dim_provider
     columns:
       - { name: provider_id, tests: [unique, not_null] }
+      - name: governorate_id
+        tests: [not_null, { relationships: { arguments: { to: ref('dim_geography'), field: governorate_id } } }]
   - name: dim_service
     columns:
       - { name: service_id, tests: [unique, not_null] }
