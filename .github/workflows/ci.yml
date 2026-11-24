@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.4.0
       - name: Lint (ruff)
         run: uvx ruff check backend ml ingestion orchestration quality analytics transformation
       - name: Security (Bandit, every severity)
