@@ -1,0 +1,38 @@
+<div class="page">
+  <header class="page-head">
+    <h1>Marketing</h1>
+    <p>Does marketing spend bring customers and revenue?</p>
+  </header>
+
+  <section class="plate market" aria-labelledby="mk-chart">
+    <h2 id="mk-chart" class="sr-only">Marketing spend, new customers and revenue per month</h2>
+    <div class="market-top">
+      @if (headline(); as h) {
+        <div class="figure">
+          <span class="figure-label">{{ h.label }}
+            <ez-trust subject="the cost per new customer">Marketing spend divided by the new customers the marketing source reports, over the same months. Twelve source rows that are not calendar months are left out. Lower is better.</ez-trust>
+          </span>
+          <ez-readout [value]="h.value" [format]="cost" />
+          @if (h.change !== null) { <ez-change [value]="h.change" good="down" [against]="h.against" /> }
+        </div>
+      } @else { <div class="skeleton" style="height: 5.25rem; width: 16rem"></div> }
+    </div>
+    @if (m()) {
+      <div class="stack">
+        <div class="chart-well"><ez-line-chart [labels]="labels()" [series]="spend()" [height]="120" [format]="compact" [formatX]="month" [(hover)]="hover" summary="Marketing spend per month" /></div>
+        <div class="chart-well"><ez-line-chart [labels]="labels()" [series]="customers()" [height]="120" [format]="whole" [formatX]="month" [(hover)]="hover" summary="New customers per month" /></div>
+        <div class="chart-well"><ez-line-chart [labels]="labels()" [series]="revenue()" [height]="120" [format]="compact" [formatX]="month" [(hover)]="hover" summary="Confirmed revenue per month" /></div>
+      </div>
+    } @else { <div class="skeleton" style="height: 26rem"></div> }
+    <p class="trust"><strong>Spend and results do not move together.</strong> Months with more spend did not bring more revenue or more new customers. Scrub any chart: the three follow the same month.
+      <ez-trust subject="the link between spend and results">Rank correlation over the 24 valid months: spend and revenue −0.19 (p = 0.37), spend and new customers 0.18 (p = 0.40). Neither is distinguishable from no link. See analytics/eda.ipynb.</ez-trust></p>
+  </section>
+
+  <section class="plate panel" aria-labelledby="mk-types">
+    <div class="section-head"><h2 id="mk-types">Which spend level recruits customers cheapest?</h2><p>Spend per new customer, by the level of the month's spend</p></div>
+    @if (types().length) { <ez-outcomes [rows]="types()" label="Spend per new customer by spend level" /> } @else { <div class="skeleton" style="height: 8rem"></div> }
+    <p class="trust" style="margin-top: 0.75rem">Total spend divided by total new customers within each level. Expensive months cost several times more per new customer than cheap ones.</p>
+  </section>
+
+  <ez-asks objective="marketing" />
+</div>

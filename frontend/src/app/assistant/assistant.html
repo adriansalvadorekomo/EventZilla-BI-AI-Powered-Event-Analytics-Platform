@@ -1,0 +1,136 @@
+<section class="dock" aria-labelledby="analyst-title">
+  <header class="head">
+    <div>
+      <h2 id="analyst-title">Analyst</h2>
+      <p>Plain questions, answered from the warehouse. The work is shown.</p>
+    </div>
+    <button class="key icon-only close" type="button" (click)="store.open.set(false)" aria-label="Close the analyst">
+      <ez-icon name="close" />
+    </button>
+  </header>
+
+  <div class="log" #log aria-live="polite" aria-relevant="additions">
+    @if (!store.messages().length) {
+      <div class="intro">
+        <p class="intro-lead">Ask about revenue, bookings, customers or marketing, in your own words.</p>
+        <div class="starters">
+          @for (s of starters; track s) {
+            <button type="button" class="starter" (click)="store.ask(s)">{{ s }}<ez-icon name="right" [size]="14" /></button>
+          }
+        </div>
+        <button type="button" class="hint" (click)="store.command('/questions')">
+          <span class="mono">/questions</span> the questions worth asking now, with their answer and the decision each informs
+        </button>
+      </div>
+    }
+
+    @for (m of store.messages(); track m.id) {
+      @switch (m.kind) {
+        @case ('you') {
+          <div class="you" [attr.data-msg]="m.id"><span class="sr-only">You asked: </span><p [class.mono]="m.text.startsWith('/')">{{ m.text }}</p></div>
+        }
+        @case ('answer') {
+          <article class="msg" [attr.data-msg]="m.id">
+            <ol class="steps" aria-label="How this was answered">
+              @for (s of steps(m); track s.text) {
+                <li class="step" [class]="'step ' + s.state">
+                  <span class="mark"><ez-icon [name]="s.state === 'ok' ? 'check' : 'flat'" [size]="12" /></span>
+                  <span>{{ s.text }}</span><span class="detail">{{ s.detail }}</span>
+                </li>
+              }
+            </ol>
+            @if (m.data.title && m.data.sql) { <h3 class="title">{{ m.data.title }}</h3> }
+            <p class="msg-text">{{ m.data.answer }}</p>
+            @if (viz(m.data); as v) {
+              <div class="viz">
+                @switch (v.kind) {
+                  @case ('number') { <div class="label">{{ v.label }}</div><div class="readout">{{ v.value }}</div> }
+                  @case ('line') { <ez-line-chart [labels]="v.labels" [series]="v.series" [height]="150" [animate]="true" [format]="v.format" [summary]="m.data.title ?? m.data.question" /> }
+                  @case ('bars') { <ez-outcomes [rows]="v.rows" [label]="m.data.title ?? m.data.question" /> }
+                  @case ('table') {
+                    <div class="table-wrap"><table>
+                      <thead><tr>@for (c of m.data.columns; track c) {<th scope="col">{{ c }}</th>}</tr></thead>
+                      <tbody>@for (r of m.data.rows.slice(0, 12); track $index) {<tr>@for (v of r; track $index; let j = $index) {<td class="num">{{ cell(v, m.data, j) }}</td>}</tr>}</tbody>
+                    </table></div>
+                  }
+                }
+              </div>
+            }
+            @if (m.data.sql) {
+              <details class="work">
+                <summary><ez-icon name="chevron" [size]="14" />Show the work</summary>
+                <pre class="mono">{{ m.data.sql }}</pre>
+                <p class="muted">{{ m.data.rows.length }} row{{ m.data.rows.length === 1 ? '' : 's' }}, at most 200, read by an account that can only read the reporting tables (no personal data). Injection risk of the question: {{ (m.data.screen_risk * 100).toFixed(2) }}&nbsp;%.</p>
+              </details>
+            }
+          </article>
+        }
+        @case ('error') {
+          <article class="msg err" [class.gated]="m.stage === 'screen' || m.stage === 'guard'" [attr.data-msg]="m.id" role="status">
+            @if (steps(m).length) {
+              <ol class="steps">
+                @for (s of steps(m); track s.text) {
+                  <li class="step" [class]="'step ' + s.state">
+                    <span class="mark"><ez-icon [name]="s.state === 'stop' ? 'stop' : 'check'" [size]="12" /></span>
+                    <span>{{ s.text }}</span><span class="detail">{{ s.detail }}</span>
+                  </li>
+                }
+              </ol>
+            }
+            <p class="msg-text">{{ m.message }}</p>
+          </article>
+        }
+        @case ('questions') {
+          <article class="msg" [attr.data-msg]="m.id">
+            <h3 class="title">Questions worth asking{{ m.topic ? ': ' + objectives[m.topic] : '' }}</h3>
+            <p class="msg-text muted">Each shows today's answer, computed from the warehouse, and the decision it informs. Select one for the full explanation.</p>
+            @for (g of grouped(m.items, m.topic); track g[0]) {
+              <div class="group">
+                <h4 class="group-title">{{ objectives[g[0]] }}</h4>
+                @for (q of g[1]; track q.id) {
+                  <button type="button" class="q" (click)="store.ask(q.question)">
+                    <span class="q-text">{{ q.question }}</span>
+                    <span class="q-value">{{ q.value ?? 'not available' }}</span>
+                    <span class="q-decision">Decides: {{ q.decision }}</span>
+                  </button>
+                }
+              </div>
+            }
+          </article>
+        }
+        @case ('help') {
+          <article class="msg" [attr.data-msg]="m.id">
+            <h3 class="title">What the analyst does</h3>
+            <p class="msg-text">It turns your question into one read-only query on the warehouse, checks that query before it runs, and answers from the rows it got back. It cannot change data, and it says so when the data cannot answer.</p>
+            <dl class="cmds">
+              @for (c of commands; track c.name) { <dt class="mono">{{ c.name }}</dt><dd>{{ c.hint }}</dd> }
+            </dl>
+          </article>
+        }
+      }
+    }
+
+    @if (store.pending()) {
+      <div class="working" role="status"><span class="scan" aria-hidden="true"></span><span class="label">Working</span><span class="mono">{{ elapsedText() }} s</span></div>
+    }
+  </div>
+
+  <form class="composer" (submit)="$event.preventDefault(); send()">
+    @if (menu().length) {
+      <ul class="menu" role="listbox" aria-label="Commands">
+        @for (c of menu(); track c.name; let i = $index) {
+          <li role="option" [attr.aria-selected]="i === menuIndex() % menu().length" [class.on]="i === menuIndex() % menu().length"
+              (mousedown)="$event.preventDefault(); send(c.name)">
+            <span class="mono">{{ c.name }}</span><span>{{ c.hint }}</span>
+          </li>
+        }
+      </ul>
+    }
+    <label class="sr-only" for="ask">Ask the analyst</label>
+    <textarea id="ask" #input rows="1" [value]="draft()" (input)="onInput(input)" (keydown)="onKey($event)"
+              placeholder="Ask a question, or type /" autocomplete="off" maxlength="500"></textarea>
+    <button class="key primary" type="submit" [disabled]="!draft().trim() || store.pending()">
+      Ask<ez-icon name="send" [size]="14" />
+    </button>
+  </form>
+</section>
