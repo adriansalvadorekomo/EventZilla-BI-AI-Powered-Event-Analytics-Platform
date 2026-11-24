@@ -1,5 +1,5 @@
 # EventZilla: land -> Airbyte -> dbt -> Great Expectations, orchestrated by Airflow; Metabase on the marts;
-# the v1 API, frontend, n8n and monitoring on the same warehouse.
+# the analytics API and its assistant, the frontend, n8n and monitoring on the same warehouse.
 #   cp .env.example .env && sh ingestion/make_s3_config.sh   (set the passwords first)
 #   docker compose up -d
 # Airbyte runs beside it (abctl, see ingestion/airbyte/README.md). Every port is bound to 127.0.0.1.
@@ -19,9 +19,11 @@ services:
       POSTGRES_DB: eventzilla
       POSTGRES_USER: ${WAREHOUSE_USER:-eventzilla}
       POSTGRES_PASSWORD: ${WAREHOUSE_PASSWORD:?set WAREHOUSE_PASSWORD in .env}
+      ANALYST_DB_PASSWORD: ${ANALYST_DB_PASSWORD:?set ANALYST_DB_PASSWORD in .env}
     volumes:
       - warehouse:/var/lib/postgresql/data
       - ./infra/warehouse/init.sh:/docker-entrypoint-initdb.d/10-init.sh:ro
+      - ./infra/warehouse/analyst_role.sh:/docker-entrypoint-initdb.d/20-analyst-role.sh:ro
     ports: ["127.0.0.1:${WAREHOUSE_PORT:-5442}:5432"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d eventzilla"]
@@ -96,25 +98,17 @@ services:
     depends_on:
       warehouse: { condition: service_healthy }
 
-  fastapi:
-    image: twelvy1400/eventzilla-backend:latest
-    build: ./backend
-    environment:
-      <<: *pg
-      EVENTZILLA_CORS_ORIGINS: http://localhost:4200
+  api:
+    image: twelvy1400/eventzilla-api:latest
+    build: { context: ., dockerfile: backend/Dockerfile }
+    environment:                # read-only role only: the API never holds the warehouse owner's password
+      EVENTZILLA_DB_HOST: warehouse
+      EVENTZILLA_DB_PORT: "5432"
+      EVENTZILLA_DB_NAME: eventzilla
+      ANALYST_DB_PASSWORD: ${ANALYST_DB_PASSWORD:?set ANALYST_DB_PASSWORD in .env}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
-    command: >
-      bash -c "mlflow ui --host 0.0.0.0 --port 5001 --backend-store-uri file:./mlruns &
-               uvicorn api.main:app --host 0.0.0.0 --port 8000"
-    ports: ["127.0.0.1:8000:8000", "127.0.0.1:5001:5001"]
-    depends_on:
-      warehouse: { condition: service_healthy }
-
-  flask:
-    image: twelvy1400/eventzilla-backend:latest
-    environment: { <<: *pg }
-    command: python app.py
-    ports: ["127.0.0.1:5000:5000"]
+      CORS_ORIGINS: http://localhost:4200
+    ports: ["127.0.0.1:${API_PORT:-8000}:8000"]
     depends_on:
       warehouse: { condition: service_healthy }
 
@@ -122,7 +116,7 @@ services:
     image: twelvy1400/eventzilla-frontend:latest
     build: ./frontend
     ports: ["127.0.0.1:4200:80"]
-    depends_on: [fastapi, flask]
+    depends_on: [api]
 
   prometheus:
     image: prom/prometheus:v3.16.0

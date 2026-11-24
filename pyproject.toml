@@ -4,10 +4,17 @@ line-length = 120
 target-version = "py311"
 extend-exclude = ["frontend", "ml/notebooks", "*.ipynb"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["app", "common"]
+
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S", "BLE", "ISC"]
-ignore = ["S101"]          # assert is used for parsing invariants in scripts
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"backend/tests/*" = ["S101"]   # pytest asserts
 
 [tool.bandit]
 # Every severity counts; nothing is skipped globally. A finding is either fixed or justified inline (# nosec Bxxx).
-exclude_dirs = ["frontend", "ml/notebooks", "node_modules", ".venv"]
+# tests use assert by design (pytest); scanning them only reports B101 noise
+exclude_dirs = ["frontend", "ml/notebooks", "node_modules", ".venv", "backend/tests"]
