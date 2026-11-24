@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, Field
 
-from . import assistant
+from . import assistant, questions
 from .db import records, run_readonly
 
 REPORTS = Path(os.environ.get("REPORTS_DIR", Path(__file__).resolve().parents[2] / "ml" / "reports"))
@@ -172,6 +172,12 @@ def models() -> dict:
         if path.exists():
             out[name] = json.loads(path.read_text())
     return out
+
+
+@app.get("/api/questions")
+def suggested_questions() -> list[dict]:
+    """The assistant's /questions command: questions worth asking, their current answer, the decision each informs."""
+    return questions.all_questions()
 
 
 class Question(BaseModel):

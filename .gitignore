@@ -45,3 +45,10 @@ transformation/target/
 transformation/logs/
 quality/uncommitted/
 quality/gx/
+
+# design working files (impeccable); PRODUCT.md and DESIGN.md are committed
+.impeccable/review/
+.impeccable/mocks/
+.impeccable/build/
+.impeccable/live/
+.impeccable/config.local.json

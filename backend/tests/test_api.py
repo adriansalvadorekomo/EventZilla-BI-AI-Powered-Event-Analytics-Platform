@@ -51,3 +51,9 @@ def test_governorates_cover_all_revenue(client):
     overview = client.get("/api/overview").json()
     assert len(rows) == 24 and round(sum(r["revenue"] for r in rows)) == round(overview["revenue"])
     assert all(r["region"] and r["revenue_per_1000_inhabitants"] > 0 for r in rows)
+
+
+def test_questions_carry_a_value_and_a_decision(client):
+    qs = client.get("/api/questions").json()
+    assert len(qs) >= 12 and {q["objective"] for q in qs} >= {"revenue", "reservations", "customers", "marketing"}
+    assert all(q["value"] and q["decision"] for q in qs)
