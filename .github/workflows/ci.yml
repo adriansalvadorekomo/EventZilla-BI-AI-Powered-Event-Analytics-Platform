@@ -1,0 +1,44 @@
+# The checks every pull request must pass (same as `mise run check`, without the warehouse).
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.4.0
+      - name: Lint (ruff)
+        run: uvx ruff check backend ml ingestion orchestration quality analytics transformation
+      - name: Security (Bandit, every severity)
+        run: uvx bandit -q -c pyproject.toml -r backend ml ingestion orchestration quality analytics transformation
+      - name: API tests (SQL guard, analyst paths; warehouse tests skip without a database)
+        working-directory: backend
+        run: uv run --no-project --python 3.12 --with-requirements requirements.txt --with pytest --with httpx python -m pytest -q
+      - name: dbt parse (models, tests and lineage compile)
+        working-directory: transformation
+        env:
+          EVENTZILLA_DB_PASSWORD: ci-unused
+        run: uvx --python 3.12 --from dbt-postgres==1.9.1 --with dbt-core==1.10.13 dbt parse --profiles-dir .
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Production build (type-checks every template)
+        run: npx ng build
