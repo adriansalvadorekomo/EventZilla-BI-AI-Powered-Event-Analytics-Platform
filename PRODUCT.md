@@ -18,7 +18,7 @@ The analysis front of the EventZilla data platform. It turns the star schema (on
 
 ## Positioning
 
-Every figure is checked before it is shown: the warehouse passes 78 dbt nodes and a Great Expectations gate, rows that fail a rule are quarantined and counted on the data-quality page, and the assistant only answers with SQL it has guarded and run read-only, showing the rows it used. The app says plainly when a difference is small or not significant, and when a model did not pass its gate.
+Every figure is checked before it is shown: the warehouse passes 79 dbt nodes (36 models, 43 tests) and a Great Expectations gate, rows that fail a rule are quarantined and counted on the data-quality page, and the assistant only answers with SQL it has guarded and run read-only, showing the rows it used. The app says plainly when a difference is small or not significant, and when a model did not pass its gate.
 
 ## Operating Context
 
@@ -37,8 +37,9 @@ Every figure is checked before it is shown: the warehouse passes 78 dbt nodes an
 
 ## Brand Commitments
 
-- The owner's identity (`~/Projects/portfolio-webapp/DESIGN.md`) is binding as an influence: IBM Plex Mono and Schibsted Grotesk, graphite grounds, one orange signal (#ff4f00) reserved for the gate and the primary action, an always-dark display, evidence over adjectives.
-- The owner asked for an enterprise identity, analysis-oriented, with prediction-market style charts (Kalshi / Polymarket) and an advanced analyst assistant with GSAP motion.
+- The owner's identity (`~/Projects/portfolio-webapp/DESIGN.md`) is an influence, not the palette: one signal colour reserved for the gate, figures read like instrument readouts, evidence over adjectives.
+- Palette and type chosen by the owner on 2026-11-24 ("Trading desk", business-oriented): navy grounds, Manrope for words, JetBrains Mono for figures only, one electric-blue data line, green for good news and red for bad news on changes, orange only for the gate (data kept out of a figure, a model or question stopped).
+- The owner asked for an enterprise identity, analysis-oriented, with prediction-market style charts (Kalshi / Polymarket), premium components, and an advanced analyst assistant with GSAP motion and a /questions command (questions worth asking, with today's answer and the decision each informs).
 - Stakeholder language: no technical words in the interface (no "fact", "dimension", "SQL" unless the user opens the assistant's working).
 - A visible but quiet notice that the data is synthetic, on every page (confirmed).
 

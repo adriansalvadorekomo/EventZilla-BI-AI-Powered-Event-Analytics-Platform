@@ -14,6 +14,7 @@ from pathlib import Path
 
 import great_expectations as gx
 import great_expectations.expectations as gxe
+import sqlalchemy as sa
 
 HERE = Path(__file__).resolve().parent
 RESERVATIONS_IN_SOURCE = 18000  # rows of the RESERVATION sheet, checked again against raw at run time
@@ -113,7 +114,22 @@ def run(name: str) -> bool:
         stats = run_result.statistics
         print(f"{run_result.suite_name:48} {stats['successful_expectations']}/{stats['evaluated_expectations']} passed")
     print(f"checkpoint {name}: {'PASSED' if result.success else 'FAILED'} · Data Docs in {docs_dir}")
+    stats = [r.statistics for r in result.run_results.values()]
+    record(name, result.success, sum(s["successful_expectations"] for s in stats),
+           sum(s["evaluated_expectations"] for s in stats))
     return result.success
+
+
+def record(name: str, passed: bool, checks_passed: int, checks: int) -> None:
+    """Keep every result in the warehouse, so the application can say when the figures last passed the gate."""
+    engine = sa.create_engine(warehouse_url())
+    with engine.begin() as conn:
+        conn.execute(sa.text("""create table if not exists quality.gate_runs (
+            checkpoint text not null, passed boolean not null, checks_passed int not null, checks int not null,
+            run_at timestamptz not null default now())"""))
+        conn.execute(sa.text("""insert into quality.gate_runs (checkpoint, passed, checks_passed, checks)
+                               values (:checkpoint, :passed, :ok, :n)"""),
+                     {"checkpoint": name, "passed": passed, "ok": checks_passed, "n": checks})
 
 
 if __name__ == "__main__":

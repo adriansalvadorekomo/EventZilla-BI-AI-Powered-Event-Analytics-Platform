@@ -41,7 +41,8 @@ def governorate_leader() -> str:
                            group by 1, 2)
                 select (select governorate from t order by rev desc limit 1) as top,
                        (select 100.0 * max(rev) / sum(rev) from t) as share, corr(pop, rev) as r from t""")
-    return f"{r['top']} leads with {_pct(r['share'])}; revenue does not follow population (r = {r['r']:.2f})"
+    follows = "does not follow" if abs(r["r"]) < 0.3 else "follows"
+    return f"{r['top']} leads with {_pct(r['share'])} of revenue; revenue {follows} population"
 
 
 def confirmation() -> str:
@@ -57,13 +58,13 @@ def ramadan() -> str:
                            group by d.date_day, d.is_ramadan)
                 select 100.0 * avg(rev) filter (where is_ramadan) / avg(rev) filter (where not is_ramadan) - 100 as diff
                 from d""")
-    return f"{_signed(r['diff'])} revenue per day during Ramadan; not statistically significant (p = 0.10)"
+    return f"{_signed(r['diff'])} revenue per day during Ramadan, a gap that could be chance"
 
 
 def conversion() -> str:
     r = _one("""select 100.0 * percentile_cont(0.5) within group (order by conversion_rate) as m
                 from reporting.rpt_site_traffic_daily where is_valid""")
-    return f"median {r['m']:.1f} % of daily visitors book (2022)"
+    return f"on a typical day, {r['m']:.1f} % of visitors book (2022)"
 
 
 def satisfaction() -> str:
@@ -106,7 +107,7 @@ def forecast() -> str:
     r = _report("forecast_revenue")
     months = r["forecast"]
     total = sum(m["revenue"] for m in months)
-    return f"about {total:,.0f} over {months[0]['month']} to {months[-1]['month']} ({r['chosen_model']})"
+    return f"about {total / 1e6:.1f} million over the first half of {months[0]['month'][:4]}"
 
 
 def not_converted() -> str:
@@ -117,7 +118,7 @@ def not_converted() -> str:
 def excluded() -> str:
     r = _one("""select (select count(*) from quality.rejected_evaluations) as ratings,
                        (select count(*) from quality.flagged_reservation_dates) as dates""")
-    return f"{r['ratings']} ratings left out; {r['dates']:,} reservations dated after their event flagged"
+    return f"{r['ratings']} ratings left out; {r['dates']:,} reservations flagged for dates after their event"
 
 
 QUESTIONS: list[tuple[str, str, str, Callable[[], str]]] = [

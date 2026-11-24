@@ -16,6 +16,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, Field
+from sqlalchemy.exc import DBAPIError
 
 from . import assistant, questions
 from .db import records, run_readonly
@@ -34,6 +35,20 @@ REGION_POP = "(select region, sum(population_2024) as pop from marts.dim_geograp
 def health() -> dict:
     run_readonly("select 1")
     return {"status": "ok"}
+
+
+@app.get("/api/status")
+def status() -> dict:
+    """When the figures were last rebuilt, and the last result of the gate on the reporting tables."""
+    out: dict = {"built_at": None, "gate": None}
+    try:
+        out["built_at"] = records("select built_at from quality.last_build")[0]["built_at"]
+        gate = records("""select passed, checks_passed, checks, run_at from quality.gate_runs
+                          where checkpoint = 'star_schema' order by run_at desc limit 1""")
+        out["gate"] = gate[0] if gate else None
+    except DBAPIError:
+        pass  # before the first build or the first gate run: the app shows "not yet recorded"
+    return out
 
 
 @app.get("/api/overview")
@@ -125,7 +140,8 @@ def customers() -> dict:
                              from marts.fact_reservation""")[0],
         "rating_quarterly": records("""
             select to_char(date_trunc('quarter', reservation_date), 'YYYY-"Q"Q') as quarter,
-                   round(avg(rating_avg), 2) as rating, round(100.0 * avg((rating_avg >= 4)::int), 1) as rated_4_or_more
+                   round(avg(rating_avg), 2) as rating,
+                   round(100.0 * avg((rating_avg >= 4)::int), 1) as rated_4_or_more, count(*) as evaluated
             from marts.fact_reservation where rating_avg is not null group by 1 order by 1"""),
         "by_service": records("""select s.service_category as label, round(avg(f.rating_avg), 2) as rating
                                  from marts.fact_reservation f join marts.dim_service s using (service_id)

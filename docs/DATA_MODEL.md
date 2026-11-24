@@ -52,7 +52,7 @@ Regenerate it with `mise run docs` (dbt docs on http://localhost:8081).
 
 ## Tests
 
-`dbt build` runs 35 models and 43 tests; every run in Airflow must pass them before the quality checkpoints.
+`dbt build` runs 36 models and 43 tests; every run in Airflow must pass them before the quality checkpoints. One of the models, `quality.last_build`, only stamps the time of the rebuild; the star-schema checkpoint writes its result to `quality.gate_runs`. Together they give the application its "rebuilt at, gate passed" line.
 
 | Kind | Count | What it guarantees |
 |---|---|---|

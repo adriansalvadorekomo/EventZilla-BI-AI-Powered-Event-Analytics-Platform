@@ -35,7 +35,7 @@ Rules: only SELECT; only the schemas above; name columns in plain English with d
 "Confirmed revenue"); round numbers sensibly; order results meaningfully; at most 200 rows. For "which ... most"
 questions return every group, ranked, so the comparison is visible; for changes over time include the change in %.
 Reply with JSON only: {{"sql": "...", "chart": {{"type": "line" | "bar" | "number" | "table", "x": "<column>",
-"y": "<column>"}}, "title": "<short title for the result>"}}.
+"y": "<column>"}}, "title": "<short title for the result, in sentence case>"}}.
 If the question cannot be answered from this data, reply {{"sql": null, "reason": "<why, in one sentence>"}}."""  # noqa: S608  # nosec B608 (prompt text, never executed)
 
 EXPLAIN_PROMPT = """You explain analysis results to managers of an event-services company. In two or three short
