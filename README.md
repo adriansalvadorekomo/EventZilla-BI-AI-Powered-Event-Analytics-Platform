@@ -157,6 +157,18 @@ mise run n8n:import       # the n8n workflows
 Then open the app on <http://localhost:4200>, Metabase on :3001, Airflow on :8080, Grafana on :3000 and n8n on
 :5678. Every port is bound to 127.0.0.1.
 
+### Images on Docker Hub
+
+Built from this branch and scanned for secret files before publishing; `compose.yaml` uses them.
+
+| Image | Contents |
+|---|---|
+| [`twelvy1400/eventzilla-api`](https://hub.docker.com/r/twelvy1400/eventzilla-api) | the API and the analyst, with the data-science reports; non-root, health check |
+| [`twelvy1400/eventzilla-frontend`](https://hub.docker.com/r/twelvy1400/eventzilla-frontend) | the analysis app on nginx, `/api` proxied to the API |
+| [`twelvy1400/eventzilla-airflow`](https://hub.docker.com/r/twelvy1400/eventzilla-airflow) | Airflow 2.10 with dbt and Great Expectations in their own virtual environments |
+
+Tags: `:latest` and the short commit they were built from.
+
 ## Commands
 
 `mise run help` lists all of them. The most useful:
