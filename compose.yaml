@@ -1,0 +1,145 @@
+# EventZilla: land -> Airbyte -> dbt -> Great Expectations, orchestrated by Airflow; Metabase on the marts;
+# the v1 API, frontend, n8n and monitoring on the same warehouse.
+#   cp .env.example .env && sh ingestion/make_s3_config.sh   (set the passwords first)
+#   docker compose up -d
+# Airbyte runs beside it (abctl, see ingestion/airbyte/README.md). Every port is bound to 127.0.0.1.
+name: eventzilla
+
+x-pg: &pg
+  EVENTZILLA_DB_HOST: warehouse
+  EVENTZILLA_DB_PORT: "5432"
+  EVENTZILLA_DB_NAME: eventzilla
+  EVENTZILLA_DB_USER: ${WAREHOUSE_USER:-eventzilla}
+  EVENTZILLA_DB_PASSWORD: ${WAREHOUSE_PASSWORD:?set WAREHOUSE_PASSWORD in .env}
+
+services:
+  warehouse:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: eventzilla
+      POSTGRES_USER: ${WAREHOUSE_USER:-eventzilla}
+      POSTGRES_PASSWORD: ${WAREHOUSE_PASSWORD:?set WAREHOUSE_PASSWORD in .env}
+    volumes:
+      - warehouse:/var/lib/postgresql/data
+      - ./infra/warehouse/init.sh:/docker-entrypoint-initdb.d/10-init.sh:ro
+    ports: ["127.0.0.1:${WAREHOUSE_PORT:-5442}:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d eventzilla"]
+      interval: 5s
+      retries: 20
+    networks: [default, airbyte]
+
+  landing:                      # S3-compatible landing zone (SeaweedFS), read by Airbyte's S3 source
+    image: chrislusf/seaweedfs:4.55
+    command: server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json -master.volumeSizeLimitMB=256
+    volumes:
+      - landing:/data
+      - ./ingestion/s3.json:/etc/seaweedfs/s3.json:ro
+    ports: ["127.0.0.1:${LANDING_PORT:-8333}:8333"]
+    networks: [default, airbyte]
+
+  airflow:
+    build: ./orchestration
+    image: twelvy1400/eventzilla-airflow:latest
+    command: standalone
+    environment:
+      <<: *pg
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${WAREHOUSE_USER:-eventzilla}:${WAREHOUSE_PASSWORD}@warehouse/airflow
+      AIRBYTE_API: ${AIRBYTE_API:-http://host.docker.internal:8006/api/public/v1}
+      S3_ENDPOINT: http://landing:8333
+      S3_ACCESS_KEY: ${LANDING_ACCESS_KEY:?set LANDING_ACCESS_KEY in .env}
+      S3_SECRET_KEY: ${LANDING_SECRET_KEY:?set LANDING_SECRET_KEY in .env}
+      LANDING_BUCKET: landing
+      EVENTZILLA_HOME: /opt/eventzilla
+      FIRECRAWL_KEY: ${FIRECRAWL_KEY:-}
+    volumes:
+      - ./orchestration/dags:/opt/airflow/dags:ro
+      - ./orchestration/webserver_config.py:/opt/airflow/webserver_config.py:ro
+      - .:/opt/eventzilla:ro
+      - dbt_target:/opt/eventzilla-runtime
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    ports: ["127.0.0.1:${AIRFLOW_PORT:-8080}:8080"]
+    depends_on:
+      warehouse: { condition: service_healthy }
+
+  metabase:
+    image: metabase/metabase:v0.65.6.4
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_HOST: warehouse
+      MB_DB_DBNAME: metabase
+      MB_DB_USER: ${WAREHOUSE_USER:-eventzilla}
+      MB_DB_PASS: ${WAREHOUSE_PASSWORD}
+      MB_ANON_TRACKING_ENABLED: "false"
+      MB_CHECK_FOR_UPDATES: "false"
+    ports: ["127.0.0.1:${METABASE_PORT:-3001}:3000"]
+    depends_on:
+      warehouse: { condition: service_healthy }
+
+  n8n:
+    image: n8nio/n8n:2.50.0
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: warehouse
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: ${WAREHOUSE_USER:-eventzilla}
+      DB_POSTGRESDB_PASSWORD: ${WAREHOUSE_PASSWORD}
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_SECURE_COOKIE: "false"
+      GENERIC_TIMEZONE: Africa/Tunis
+    volumes:
+      - n8n:/home/node/.n8n
+      - ./ml/n8n:/workflows:ro
+    ports: ["127.0.0.1:${N8N_PORT:-5678}:5678"]
+    depends_on:
+      warehouse: { condition: service_healthy }
+
+  fastapi:
+    image: twelvy1400/eventzilla-backend:latest
+    build: ./backend
+    environment:
+      <<: *pg
+      EVENTZILLA_CORS_ORIGINS: http://localhost:4200
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+    command: >
+      bash -c "mlflow ui --host 0.0.0.0 --port 5001 --backend-store-uri file:./mlruns &
+               uvicorn api.main:app --host 0.0.0.0 --port 8000"
+    ports: ["127.0.0.1:8000:8000", "127.0.0.1:5001:5001"]
+    depends_on:
+      warehouse: { condition: service_healthy }
+
+  flask:
+    image: twelvy1400/eventzilla-backend:latest
+    environment: { <<: *pg }
+    command: python app.py
+    ports: ["127.0.0.1:5000:5000"]
+    depends_on:
+      warehouse: { condition: service_healthy }
+
+  frontend:
+    image: twelvy1400/eventzilla-frontend:latest
+    build: ./frontend
+    ports: ["127.0.0.1:4200:80"]
+    depends_on: [fastapi, flask]
+
+  prometheus:
+    image: prom/prometheus:v3.16.0
+    volumes: ["./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    ports: ["127.0.0.1:9090:9090"]
+
+  grafana:
+    image: grafana/grafana:13.2.6
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes: ["./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro"]
+    ports: ["127.0.0.1:3000:3000"]
+
+volumes: { warehouse: {}, landing: {}, n8n: {}, dbt_target: {} }
+
+networks:
+  airbyte:                      # the Docker network of Airbyte's kind node (abctl): lets Airbyte reach these two
+    external: true
+    name: kind
