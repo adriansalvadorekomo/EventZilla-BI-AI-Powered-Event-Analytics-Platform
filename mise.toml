@@ -90,6 +90,13 @@ dir = "transformation"
 run = ["{{ vars.dbt }} docs generate --profiles-dir .", "{{ vars.dbt }} docs serve --profiles-dir . --port 8081 --no-browser"]
 
 # ---------------------------------------------------------------- analysis
+[tasks."n8n:import"]
+description = "Import and publish the n8n workflows (automation/n8n) in the running n8n container"
+run = [
+  "docker compose exec -T n8n n8n import:workflow --separate --input=/workflows",
+  "for id in ezFreshnessWatch01 ezDecisionBrief01 ezAskAnalyst01; do docker compose exec -T n8n n8n publish:workflow --id=$id; done",
+]
+
 [tasks.dashboards]
 description = "Create or update the five Metabase dashboards (needs MB_API_KEY, an admin key)"
 run = "{{ vars.py }} --with requests python analytics/metabase/setup_dashboards.py"

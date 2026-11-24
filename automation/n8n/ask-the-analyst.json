@@ -1,0 +1,115 @@
+{
+  "id": "ezAskAnalyst01",
+  "name": "EventZilla \u00b7 ask the analyst (webhook)",
+  "nodes": [
+    {
+      "id": "815fa31d-b586-54c9-9bf1-80f90d88c008",
+      "name": "Question received",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ask",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "webhookId": "eventzilla-ask"
+    },
+    {
+      "id": "30326542-1a69-5d1a-a340-fa0430cba258",
+      "name": "Ask the analyst",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/api/ask",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ question: $json.body.question }) }}",
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "2e49551a-9a3b-5c1e-adaf-9678de55f155",
+      "name": "Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a",
+              "name": "answer",
+              "type": "string",
+              "value": "={{ $json.answer ?? $json.error?.message ?? 'The analyst could not answer.' }}"
+            },
+            {
+              "id": "b",
+              "name": "rows",
+              "type": "number",
+              "value": "={{ ($json.rows ?? []).length }}"
+            },
+            {
+              "id": "c",
+              "name": "sql",
+              "type": "string",
+              "value": "={{ $json.sql ?? '' }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Question received": {
+      "main": [
+        [
+          {
+            "node": "Ask the analyst",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask the analyst": {
+      "main": [
+        [
+          {
+            "node": "Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Africa/Tunis",
+    "saveManualExecutions": true
+  },
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {}
+}

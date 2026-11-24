@@ -43,7 +43,8 @@ def test_models_reports_are_served(client):
 
 
 def test_metrics_are_exposed(client):
-    assert "http_requests_total" in client.get("/metrics").text
+    text = client.get("/metrics").text
+    assert "http_requests_total" in text and "eventzilla_analyst_questions_total" in text
 
 
 def test_governorates_cover_all_revenue(client):

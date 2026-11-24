@@ -1,0 +1,152 @@
+{
+  "id": "ezDecisionBrief01",
+  "name": "EventZilla \u00b7 weekly decision brief",
+  "nodes": [
+    {
+      "id": "1f461c6c-389a-548a-b1c4-8db193f46303",
+      "name": "Monday 07:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -100
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "f63c21fe-048e-54cc-8b7f-da5cf65a6f81",
+      "name": "On demand",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        100
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "decision-brief",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "webhookId": "eventzilla-decision-brief"
+    },
+    {
+      "id": "a739fbfc-2c09-51b8-85a1-59bb21d59b98",
+      "name": "Read status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "url": "http://api:8000/api/status",
+        "options": {}
+      }
+    },
+    {
+      "id": "76918b9b-46d1-5161-8344-3d3ebc6a7836",
+      "name": "Read questions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "url": "http://api:8000/api/questions",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "78a10950-e36c-5ce4-a001-f6a90ae64b23",
+      "name": "Write the brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// The questions worth asking this week, with today's answer and the decision each informs.\nconst status = $('Read status').first().json;\nconst questions = $('Read questions').first().json;\nconst items = Array.isArray(questions) ? questions : $('Read questions').all().map(i => i.json);\nconst titles = { revenue: 'Revenue', reservations: 'Reservations', customers: 'Customers',\n                 marketing: 'Marketing', quality: 'Data quality' };\nconst fresh = status.gate\n  ? `Figures rebuilt ${new Date(status.built_at).toUTCString()}; gate ${status.gate.passed ? 'passed' : 'FAILED'} (${status.gate.checks_passed} of ${status.gate.checks} checks).`\n  : 'No gate result recorded yet.';\nconst lines = ['# EventZilla \u00b7 decision brief', '', fresh, '', '_Synthetic data, 2022-2025._', ''];\nfor (const key of Object.keys(titles)) {\n  const qs = items.filter(q => q.objective === key);\n  if (!qs.length) continue;\n  lines.push(`## ${titles[key]}`, '');\n  for (const q of qs) lines.push(`- **${q.question}** ${q.value ?? 'not available'}. Decides: ${q.decision}`);\n  lines.push('');\n}\nreturn [{ json: { brief: lines.join('\\n'), questions: items.length, gate_passed: status.gate?.passed ?? null } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Monday 07:00": {
+      "main": [
+        [
+          {
+            "node": "Read status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On demand": {
+      "main": [
+        [
+          {
+            "node": "Read status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read status": {
+      "main": [
+        [
+          {
+            "node": "Read questions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read questions": {
+      "main": [
+        [
+          {
+            "node": "Write the brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Africa/Tunis",
+    "saveManualExecutions": true
+  },
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {}
+}

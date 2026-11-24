@@ -14,6 +14,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import Counter, Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, Field
 from sqlalchemy.exc import DBAPIError
@@ -27,6 +28,11 @@ app = FastAPI(title="EventZilla analytics API", version="2.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=os.environ.get("CORS_ORIGINS", "http://localhost:4200").split(","),
                    allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
 Instrumentator().instrument(app).expose(app, include_in_schema=False)
+
+# how each analyst question ended, and how long a full answer took (Grafana: "API and analyst")
+ANALYST_QUESTIONS = Counter("eventzilla_analyst_questions_total", "Analyst questions by outcome", ["outcome"])
+ANALYST_SECONDS = Histogram("eventzilla_analyst_answer_seconds", "Time to a full analyst answer",
+                            buckets=(1, 2, 3, 5, 8, 13, 21, 34))
 
 REGION_POP = "(select region, sum(population_2024) as pop from marts.dim_geography group by 1)"
 
@@ -207,7 +213,11 @@ class Question(BaseModel):
 @app.post("/api/ask")
 def ask(body: Question) -> dict:
     try:
-        return assistant.ask(body.question)
+        answer = assistant.ask(body.question)
     except assistant.AssistantError as error:
+        ANALYST_QUESTIONS.labels(outcome=f"stopped_{error.stage}").inc()
         status = {"screen": 400, "guard": 400, "run": 422, "busy": 429}.get(error.stage, 503)
         raise HTTPException(status, {"stage": error.stage, "message": error.message}) from error
+    ANALYST_QUESTIONS.labels(outcome="answered" if answer["sql"] else "no_data").inc()
+    ANALYST_SECONDS.observe(answer["elapsed_ms"] / 1000)
+    return answer
