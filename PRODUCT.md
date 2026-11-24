@@ -28,7 +28,7 @@ Every figure is checked before it is shown: the warehouse passes 78 dbt nodes an
 
 ## Capabilities and Constraints
 
-- Angular 20 (standalone components, signals), GSAP for motion; served by nginx, API at `/api` (FastAPI, `backend/`). Stack confirmed by the owner: keep Angular, rebuilt from scratch.
+- Angular 22 (standalone components, signals, zoneless), GSAP for motion; served by nginx, API at `/api` (FastAPI, `backend/`). Stack confirmed by the owner: keep Angular, rebuilt from scratch (on Angular 22: the 20 CLI predates the Node in use).
 - English only (confirmed).
 - API: `/api/overview`, `/api/revenue/monthly`, `/api/revenue/by/{event_type|service|region|governorate}`, `/api/reservations/status`, `/api/reservations/calendar`, `/api/conversion/weekly`, `/api/customers`, `/api/marketing`, `/api/quality`, `/api/models`, `POST /api/ask`.
 - The assistant needs a Groq key; it can be busy (rate limit) or decline questions the data cannot answer. Both states are normal and must read as such.

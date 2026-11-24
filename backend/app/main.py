@@ -123,6 +123,10 @@ def customers() -> dict:
                                     round(100.0 * avg((rating_avg >= 4)::int), 1) as rated_4_or_more,
                                     round(100.0 * avg((rating_avg is not null)::int), 1) as evaluated
                              from marts.fact_reservation""")[0],
+        "rating_quarterly": records("""
+            select to_char(date_trunc('quarter', reservation_date), 'YYYY-"Q"Q') as quarter,
+                   round(avg(rating_avg), 2) as rating, round(100.0 * avg((rating_avg >= 4)::int), 1) as rated_4_or_more
+            from marts.fact_reservation where rating_avg is not null group by 1 order by 1"""),
         "by_service": records("""select s.service_category as label, round(avg(f.rating_avg), 2) as rating
                                  from marts.fact_reservation f join marts.dim_service s using (service_id)
                                  where f.rating_avg is not null group by 1 order by 2 desc"""),
