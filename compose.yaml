@@ -2,7 +2,7 @@
 # the analytics API and its assistant, the frontend, n8n and monitoring on the same warehouse.
 #   cp .env.example .env && sh ingestion/make_s3_config.sh   (set the passwords first)
 #   docker compose up -d
-# Airbyte runs beside it (abctl, see ingestion/airbyte/README.md). Every port is bound to 127.0.0.1.
+# Airbyte runs beside it (abctl: mise run airbyte:install). Every port is bound to 127.0.0.1. mise run help lists the tasks.
 name: eventzilla
 
 x-pg: &pg

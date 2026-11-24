@@ -52,3 +52,6 @@ quality/gx/
 .impeccable/build/
 .impeccable/live/
 .impeccable/config.local.json
+
+# Airbyte (abctl) state when installed with mise run airbyte:install
+.airbyte-home/

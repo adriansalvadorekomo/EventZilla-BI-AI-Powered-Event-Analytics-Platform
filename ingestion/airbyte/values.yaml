@@ -1,0 +1,4 @@
+# local evaluation only: no login on the UI or API (bound to localhost by abctl)
+global:
+  auth:
+    enabled: false
