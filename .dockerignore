@@ -1,14 +1,18 @@
+# secrets and local state never enter an image
+.env
+.env.*
+!.env.example
+ingestion/s3.json
+quality/gx
+quality/uncommitted
+transformation/target
+transformation/logs
+.git
 **/__pycache__
 **/*.pyc
 **/.venv
-**/venv
 **/node_modules
 **/dist
-.git
-backend/mlruns
-ml/forecasting
-ml/notebooks
-docs
-etl/talend
-etl/airflow
+**/.angular
 data
+docs

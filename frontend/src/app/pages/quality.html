@@ -1,0 +1,47 @@
+<div class="page">
+  <header class="page-head">
+    <h1>Data quality</h1>
+    <p>What was left out or flagged before any figure in this app was computed, and how the figures are checked every day.</p>
+  </header>
+
+  <section class="plate panel" aria-labelledby="dq-rules">
+    <div class="section-head"><h2 id="dq-rules">What the rules caught</h2><p>On the last load of the source data</p></div>
+    @if (rows().length) { <ez-outcomes [rows]="rows()" label="Rows caught by each quality rule" /> } @else { <div class="skeleton" style="height: 11rem"></div> }
+    <p class="trust" style="margin-top: 0.75rem"><strong>Orange marks the gate:</strong> those rows are kept out of every average. Reservations dated after their event are kept (the rest of each row is sound), but no lead-time figure is shown anywhere.</p>
+  </section>
+
+  <section class="plate panel" aria-labelledby="dq-how">
+    <div class="section-head"><h2 id="dq-how">How the figures are checked</h2><p>Every morning at 05:00</p></div>
+    <ol class="steps">
+      <li><span class="n">1</span><div><h3>Collected</h3><p>The source workbook and the public reference pages (governorates, public holidays) are copied into a landing area, unchanged.</p></div></li>
+      <li><span class="n">2</span><div><h3>Loaded</h3><p>The 16 source tables are loaded into the warehouse as they are, row for row.</p></div></li>
+      <li><span class="n">3</span><div><h3>Rebuilt and tested</h3><p>The reporting tables are rebuilt from scratch, with 43 tests along the way (unique keys, required values, links between tables, accepted values). A failing test stops every table that depends on it.</p></div></li>
+      <li><span class="n">4</span><div><h3>Checked at the gate</h3><p>15 final checks on the reporting tables, including that no reservation was lost and that no personal data reached them. If one fails, the run is marked failed and the figures should not be presented.</p></div></li>
+    </ol>
+  </section>
+
+  @if (models.value(); as m) {
+    <section class="plate panel" aria-labelledby="dq-models">
+      <div class="section-head"><h2 id="dq-models">Predictions and their gates</h2><p>A model is shown only if it beats a simple guess</p></div>
+      <div class="models">
+        @if (m.forecast_revenue; as f) {
+          <div class="pass-note"><ez-icon name="gate" [size]="16" /><p><strong>Revenue forecast: passed.</strong> {{ f.chosen_model }}, average error {{ chosenError() }}&nbsp;% on 2025, under the 30&nbsp;% limit.</p></div>
+        }
+        @if (m.segment_customers; as s) {
+          <div class="pass-note"><ez-icon name="gate" [size]="16" /><p><strong>Customer segments: passed.</strong> {{ s.segments.length }} groups, clearly distinct from each other.
+            <ez-trust subject="the segment check">Silhouette {{ s.silhouette.toFixed(2) }}; the team required at least 0.25 before using the groups.</ez-trust></p></div>
+        }
+        @if (m.predict_confirmation; as c) {
+          @if (c.passes_gate) {
+            <div class="pass-note"><ez-icon name="gate" [size]="16" /><p><strong>Confirmation prediction: passed.</strong></p></div>
+          } @else {
+            <div class="gate-note"><ez-icon name="stop" [size]="16" /><p><strong>Confirmation prediction: stopped at the gate.</strong> It predicts no better than a coin toss, so it is not shown anywhere.
+            <ez-trust subject="the confirmation check">Area under the ROC curve {{ c.results.gradient_boosting_auc_mean.toFixed(2) }} in 5-fold cross-validation, against {{ c.results.dummy_auc_mean.toFixed(2) }} for a random guess; the gate required at least 0.60.</ez-trust></p></div>
+          }
+        }
+      </div>
+    </section>
+  }
+
+  <ez-asks objective="quality" />
+</div>

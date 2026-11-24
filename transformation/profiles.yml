@@ -1,0 +1,12 @@
+eventzilla:
+  target: warehouse
+  outputs:
+    warehouse:
+      type: postgres
+      host: "{{ env_var('EVENTZILLA_DB_HOST', 'localhost') }}"
+      port: "{{ env_var('EVENTZILLA_DB_PORT', '5442') | int }}"
+      dbname: "{{ env_var('EVENTZILLA_DB_NAME', 'eventzilla') }}"
+      user: "{{ env_var('EVENTZILLA_DB_USER', 'eventzilla') }}"
+      password: "{{ env_var('EVENTZILLA_DB_PASSWORD') }}"
+      schema: marts
+      threads: 4

@@ -1,0 +1,149 @@
+# EventZilla tasks.  mise run help  lists them all.
+# Every task reads .env (copy .env.example and set the passwords first).
+
+[tools]
+uv = "latest"
+node = "24"
+
+[env]
+_.file = ".env"
+# the scripts' names for the landing store, when run from the host
+S3_ENDPOINT = "http://127.0.0.1:{{ env.LANDING_PORT | default(value='8333') }}"
+S3_ACCESS_KEY = "{{ env.LANDING_ACCESS_KEY | default(value='') }}"
+S3_SECRET_KEY = "{{ env.LANDING_SECRET_KEY | default(value='') }}"
+EVENTZILLA_DB_PASSWORD = "{{ env.WAREHOUSE_PASSWORD | default(value='') }}"
+
+[vars]
+dbt = "uvx --python 3.12 --from dbt-postgres==1.9.1 --with dbt-core==1.10.13 dbt"
+py = "uv run -q --no-project --python 3.12"
+
+# ---------------------------------------------------------------- help
+[tasks.help]
+description = "List every task with what it does"
+run = "mise tasks ls --sort name"
+
+# ---------------------------------------------------------------- stack
+[tasks.setup]
+description = "First run: create .env from the example, write the landing store's identity"
+run = ["test -f .env || cp .env.example .env", "sh ingestion/make_s3_config.sh"]
+
+[tasks.up]
+description = "Start the platform (warehouse, landing, Airflow, Metabase, n8n, API, frontend, monitoring)"
+run = "docker compose up -d --build"
+
+[tasks.down]
+description = "Stop the platform (data volumes are kept)"
+run = "docker compose down"
+
+[tasks.ps]
+description = "Show the platform's containers and their health"
+run = "docker compose ps"
+
+[tasks."airbyte:install"]
+description = "Install Airbyte locally (abctl, port 8006, its own HOME so an existing ~/.airbyte is never touched)"
+run = """
+mkdir -p .airbyte-home
+HOME="$PWD/.airbyte-home" abctl local install --port 8006 --values ingestion/airbyte/values.yaml --no-browser
+"""
+
+[tasks."airbyte:setup"]
+description = "Create or update the Airbyte source, destination and connection (idempotent)"
+run = "{{ vars.py }} --with requests python ingestion/airbyte/setup_airbyte.py"
+
+# ---------------------------------------------------------------- pipeline, step by step
+[tasks.land]
+description = "Split the source workbook into CSVs and upload them to the landing bucket"
+run = "{{ vars.py }} --with pandas --with openpyxl --with boto3 python ingestion/land_workbook.py --s3"
+
+[tasks.scrape]
+description = "Firecrawl enrichment: governorates and public holidays (at most monthly; --max-age-days 0 forces it)"
+run = "{{ vars.py }} --with requests --with boto3 --with hijridate==2.6.0 python ingestion/scrape_enrichment.py --s3"
+
+[tasks.sync]
+description = "Run the Airbyte connection once: landing bucket -> warehouse raw schema"
+run = "{{ vars.py }} --with requests python ingestion/airbyte/setup_airbyte.py --sync"
+
+[tasks.build]
+description = "dbt: rebuild staging, quality, the star and reporting, with all 43 tests"
+dir = "transformation"
+run = "{{ vars.dbt }} build --profiles-dir ."
+
+[tasks.quality]
+description = "Great Expectations: raw checkpoint (report only), then the star-schema gate"
+run = [
+  "{{ vars.py }} --with 'great_expectations[postgresql]==1.25.0' python quality/validate.py raw",
+  "{{ vars.py }} --with 'great_expectations[postgresql]==1.25.0' python quality/validate.py star_schema",
+]
+
+[tasks.pipeline]
+description = "The whole daily run from the host: land, scrape, sync, build, quality"
+depends = ["land", "scrape"]
+run = ["mise run sync", "mise run build", "mise run quality"]
+
+[tasks.trigger]
+description = "Trigger the daily Airflow DAG (eventzilla_daily) now"
+run = "docker compose exec airflow airflow dags trigger eventzilla_daily"
+
+[tasks.docs]
+description = "dbt docs (lineage and tests) on http://localhost:8081"
+dir = "transformation"
+run = ["{{ vars.dbt }} docs generate --profiles-dir .", "{{ vars.dbt }} docs serve --profiles-dir . --port 8081 --no-browser"]
+
+# ---------------------------------------------------------------- analysis
+[tasks."n8n:import"]
+description = "Import and publish the n8n workflows (automation/n8n) in the running n8n container"
+run = [
+  "docker compose exec -T n8n n8n import:workflow --separate --input=/workflows",
+  "for id in ezFreshnessWatch01 ezDecisionBrief01 ezAskAnalyst01; do docker compose exec -T n8n n8n publish:workflow --id=$id; done",
+]
+
+[tasks.dashboards]
+description = "Create or update the five Metabase dashboards (needs MB_API_KEY, an admin key)"
+run = "{{ vars.py }} --with requests python analytics/metabase/setup_dashboards.py"
+
+[tasks.ml]
+description = "Run the three data-science objectives and rewrite ml/reports/*.json"
+dir = "ml"
+run = """
+for s in forecast_revenue predict_confirmation segment_customers; do
+  {{ vars.py }} --with scikit-learn==1.9.1 --with statsmodels==0.15.0 --with pandas --with 'sqlalchemy<2.1' --with psycopg2-binary python $s.py
+done
+"""
+
+[tasks.eda]
+description = "Re-execute the EDA notebook in place (analytics/eda.ipynb)"
+run = "{{ vars.py }} --with jupyter --with pandas --with 'sqlalchemy<2.1' --with psycopg2-binary --with matplotlib --with scipy jupyter nbconvert --to notebook --execute --inplace analytics/eda.ipynb"
+
+# ---------------------------------------------------------------- app
+[tasks.api]
+description = "Analytics API with the analyst, on http://localhost:8000 (reload on change)"
+dir = "backend"
+run = "{{ vars.py }} --with-requirements requirements.txt uvicorn app.main:app --reload --port 8000"
+
+[tasks.web]
+description = "Frontend dev server on http://localhost:4200 (proxies /api to :8000)"
+dir = "frontend"
+run = ["test -d node_modules || npm ci", "npx ng serve --port 4200"]
+
+# ---------------------------------------------------------------- checks
+[tasks."test:api"]
+description = "API tests: SQL guard, analyst paths, endpoints on the live warehouse"
+dir = "backend"
+run = "{{ vars.py }} --with-requirements requirements.txt --with pytest --with httpx python -m pytest -q"
+
+[tasks."build:web"]
+description = "Production build of the frontend (type-checks every template)"
+dir = "frontend"
+run = ["test -d node_modules || npm ci", "npx ng build"]
+
+[tasks.lint]
+description = "ruff on all Python"
+run = "uvx ruff check backend ml ingestion orchestration quality analytics transformation"
+
+[tasks.security]
+description = "Bandit security scan on all Python (config in pyproject.toml)"
+run = "uvx bandit -q -c pyproject.toml -r backend ml ingestion orchestration quality analytics transformation"
+
+[tasks.check]
+description = "Everything a pull request must pass: lint, security, API tests, frontend build"
+depends = ["lint", "security", "test:api", "build:web"]

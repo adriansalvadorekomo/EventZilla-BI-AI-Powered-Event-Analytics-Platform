@@ -1,0 +1,61 @@
+version: 2
+models:
+  - name: dim_date
+    columns:
+      - { name: date_day, tests: [unique, not_null] }
+      - { name: season, tests: [not_null] }
+  - name: dim_event
+    columns:
+      - { name: event_id, tests: [unique, not_null] }
+      - name: event_type
+        tests: [{ accepted_values: { arguments: { values: [Birthday, Corporate Event, Private Party, Wedding] } } }]
+      - name: beneficiary_id
+        tests: [{ relationships: { arguments: { to: ref('dim_beneficiary'), field: beneficiary_id } } }]
+  - name: dim_beneficiary
+    columns:
+      - { name: beneficiary_id, tests: [unique, not_null] }
+  - name: dim_provider
+    columns:
+      - { name: provider_id, tests: [unique, not_null] }
+      - name: governorate_id
+        tests: [not_null, { relationships: { arguments: { to: ref('dim_geography'), field: governorate_id } } }]
+  - name: dim_service
+    columns:
+      - { name: service_id, tests: [unique, not_null] }
+      - name: provider_id
+        tests: [{ relationships: { arguments: { to: ref('dim_provider'), field: provider_id } } }]
+  - name: fact_reservation
+    description: >
+      The fact of the star, one row per reservation. Every measure is traced to a business objective
+      (meta.objective) of docs/GIMSI.md.
+    meta: { grain: one reservation, objectives: [BO1, BO2, BO3, BO4] }
+    columns:
+      - { name: revenue, description: Final price of confirmed reservations (0 otherwise), meta: { objective: BO1 } }
+      - { name: final_price, description: Price agreed with the customer, meta: { objective: BO1 } }
+      - { name: list_price, description: Catalogue price of the service booked, meta: { objective: BO1 } }
+      - { name: is_confirmed, meta: { objective: BO2 } }
+      - { name: is_cancelled, meta: { objective: BO2 } }
+      - { name: lead_time_days, description: Days between booking and the event, meta: { objective: BO2 } }
+      - { name: rating_avg, description: Mean of the valid (1-5) evaluations, meta: { objective: BO3 } }
+      - { name: evaluations, description: Number of valid evaluations, meta: { objective: BO3 } }
+      - { name: reservation_id, tests: [unique, not_null] }
+      - name: event_id
+        tests: [not_null, { relationships: { arguments: { to: ref('dim_event'), field: event_id } } }]
+      - name: service_id
+        tests: [not_null, { relationships: { arguments: { to: ref('dim_service'), field: service_id } } }]
+      - name: governorate_id
+        tests: [not_null, { relationships: { arguments: { to: ref('dim_geography'), field: governorate_id } } }]
+      - name: provider_id
+        tests: [{ relationships: { arguments: { to: ref('dim_provider'), field: provider_id } } }]
+      - name: reservation_date
+        tests: [not_null, { relationships: { arguments: { to: ref('dim_date'), field: date_day } } }]
+      - name: event_date
+        tests: [not_null, { relationships: { arguments: { to: ref('dim_date'), field: date_day } } }]
+      - name: beneficiary_id
+        tests: [not_null, { relationships: { arguments: { to: ref('dim_beneficiary'), field: beneficiary_id } } }]
+      - name: status
+        tests: [{ accepted_values: { arguments: { values: [confirmed, pending, cancelled] } } }]
+  - name: dim_geography
+    description: Tunisia's 24 governorates, scraped from Wikipedia (CC BY-SA 4.0) with Firecrawl.
+    columns:
+      - { name: governorate_id, tests: [unique, not_null] }

@@ -1,0 +1,40 @@
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="bar">
+  <a class="brand" routerLink="/" aria-label="EventZilla, board">
+    <svg viewBox="0 0 28 28" width="26" height="26" aria-hidden="true">
+      <rect x="1" y="1" width="26" height="26" rx="7" fill="#111a2e" stroke="#2c3a5c" />
+      <path d="M6 18.5l4.5-4 3.5 2.5 7.5-8" fill="none" stroke="#3b82f6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="21.5" cy="9" r="2.2" fill="#3b82f6" />
+    </svg>
+    <span class="word">EventZilla</span><span class="sub mono">analytics</span>
+  </a>
+
+  <nav class="nav" aria-label="Pages">
+    @for (p of pages; track p.path) {
+      <a [routerLink]="p.path" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: p.path === '/' }" ariaCurrentWhenActive="page">{{ p.label }}</a>
+    }
+  </nav>
+
+  <div class="tools">
+    <span class="note">
+      <span class="mono">Synthetic data<span class="years"> · 2022–2025</span></span>
+      <ez-trust subject="the data">
+        EventZilla's original warehouse was lost. These pages run on the rebuilt platform, fed by a synthetic dataset
+        with the original structure: 18,000 reservations across Tunisia's 24 governorates. The method is real; the
+        figures are not company results.
+      </ez-trust>
+    </span>
+    <button type="button" class="key search" (click)="palette.open()" aria-keyshortcuts="Control+K Meta+K">
+      <ez-icon name="ask" [size]="14" /><span class="search-text">Go to or ask</span><kbd>{{ isMac ? '⌘' : 'Ctrl' }} K</kbd>
+    </button>
+    <button type="button" class="key primary ask-open" (click)="store.open.set(true)">Ask</button>
+  </div>
+</header>
+
+<div class="desk">
+  <main id="main" tabindex="-1"><router-outlet /></main>
+  <ez-assistant class="assistant" />
+</div>
+
+<ez-palette #palette />

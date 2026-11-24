@@ -14,8 +14,8 @@ backend/mlruns/
 
 # Node
 node_modules/
-eventzilla-front/dist/
-eventzilla-front/.angular/
+frontend/dist/
+frontend/.angular/
 
 # DB dump (can be large)
 docker/postgres-init/init.sql
@@ -38,4 +38,20 @@ backend/mlflow.db
 Thumbs.db
 
 # Temp files
--w
+# platform
+.env
+ingestion/s3.json
+transformation/target/
+transformation/logs/
+quality/uncommitted/
+quality/gx/
+
+# design working files (impeccable); PRODUCT.md and DESIGN.md are committed
+.impeccable/review/
+.impeccable/mocks/
+.impeccable/build/
+.impeccable/live/
+.impeccable/config.local.json
+
+# Airbyte (abctl) state when installed with mise run airbyte:install
+.airbyte-home/

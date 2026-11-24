@@ -1,0 +1,108 @@
+<div class="page">
+  <header class="page-head">
+    <h1>How the business is doing</h1>
+    <p>Each objective as a market: where it stands, how it moved, the trend behind it.</p>
+  </header>
+
+  @if (failed()) {
+    <p class="plate panel error-line" role="alert">The analytics service did not answer. Check that the API is running, then reload.</p>
+  }
+
+  <div class="board">
+    <article class="plate tile">
+      <header class="tile-head">
+        <h2><a routerLink="/revenue">Revenue</a></h2>
+        <p>Is the business making money?</p>
+      </header>
+      @if (revenue(); as r) {
+        <div class="figure">
+          <span class="figure-label">Confirmed revenue, 2025
+            <ez-trust subject="revenue">Sum of the agreed price of confirmed reservations, by reservation date. Pending and cancelled reservations count zero. The source documents no currency, so none is shown.</ez-trust>
+          </span>
+          <ez-readout [value]="r.total" [format]="compact" />
+          <ez-change [value]="r.change" against="vs 2024" />
+        </div>
+        <div class="chart-well">@if (hRev() !== null) { <span class="peek num">{{ month(r.labels[hRev()!]) }} · {{ compact(r.values[hRev()!]) }}</span> }<ez-line-chart [labels]="r.labels" [series]="[{ name: 'Monthly revenue', values: r.values, fill: true }]" [height]="118" [compact]="true" [legend]="false" [(hover)]="hRev" [animate]="true" [format]="compact" [formatX]="month" summary="Monthly confirmed revenue, 2022 to 2025" /></div>
+      } @else { <div class="skeleton sk-fig"></div><div class="skeleton sk-chart"></div> }
+      <a class="open" routerLink="/revenue">Where it comes from<ez-icon name="right" [size]="14" /></a>
+    </article>
+
+    <article class="plate tile">
+      <header class="tile-head">
+        <h2><a routerLink="/reservations">Reservations</a></h2>
+        <p>Do bookings turn into business?</p>
+      </header>
+      @if (reservations(); as r) {
+        <div class="figure">
+          <span class="figure-label">Confirmed, last 4 quarters
+            <ez-trust subject="the confirmation share">Share of each quarter's reservations whose status is confirmed, averaged over the last four quarters and compared with the four before.</ez-trust>
+          </span>
+          <ez-readout [value]="r.rate" [format]="pct" />
+          <ez-change [value]="r.change" unit="pts" [smallBelow]="3" against="vs previous 4" />
+        </div>
+        <div class="chart-well">@if (hRes() !== null) { <span class="peek num">{{ quarter(r.labels[hRes()!]) }} · {{ pct(r.values[hRes()!]) }}</span> }<ez-line-chart [labels]="r.labels" [series]="[{ name: 'Confirmed', values: r.values, fill: true }]" [domain]="[0, 100]" [height]="118" [compact]="true" [legend]="false" [(hover)]="hRes" [animate]="true" [format]="pct" summary="Share of reservations confirmed per quarter" /></div>
+      } @else { <div class="skeleton sk-fig"></div><div class="skeleton sk-chart"></div> }
+      <a class="open" routerLink="/reservations">Statuses and calendar<ez-icon name="right" [size]="14" /></a>
+    </article>
+
+    <article class="plate tile">
+      <header class="tile-head">
+        <h2><a routerLink="/customers">Customers</a></h2>
+        <p>Are they satisfied, and do they come back?</p>
+      </header>
+      @if (satisfaction(); as s) {
+        <div class="figure">
+          <span class="figure-label">Average rating, last 4 quarters
+            <ez-trust subject="the rating">Mean of the valid 1 to 5 evaluations over the last four quarters, compared with the four before. 312 ratings outside the scale are left out; reservations without an evaluation are not counted.</ez-trust>
+          </span>
+          <ez-readout [value]="s.rating" [format]="rating" unit="/ 5" />
+          <ez-change [value]="s.change" unit="abs" [smallBelow]="0.1" against="vs previous 4" />
+        </div>
+        <div class="chart-well">@if (hCus() !== null) { <span class="peek num">{{ quarter(s.labels[hCus()!]) }} · {{ rating(s.values[hCus()!]) }}</span> }<ez-line-chart [labels]="s.labels" [series]="[{ name: 'Average rating', values: s.values, fill: true }]" [domain]="[1, 5]" [height]="118" [compact]="true" [legend]="false" [(hover)]="hCus" [animate]="true" [format]="rating" summary="Average rating per quarter, on a 1 to 5 scale" /></div>
+      } @else { <div class="skeleton sk-fig"></div><div class="skeleton sk-chart"></div> }
+      <a class="open" routerLink="/customers">Loyalty and complaints<ez-icon name="right" [size]="14" /></a>
+    </article>
+
+    <article class="plate tile">
+      <header class="tile-head">
+        <h2><a routerLink="/marketing">Marketing</a></h2>
+        <p>Does the spend bring customers?</p>
+      </header>
+      @if (acquisition(); as a) {
+        <div class="figure">
+          <span class="figure-label">Per new customer, 2023–24
+            <ez-trust subject="the cost per new customer">Total marketing spend divided by the new customers the marketing source reports, over all valid months of 2023 and 2024. Twelve source rows that are not calendar months are left out.</ez-trust>
+          </span>
+          <ez-readout [value]="a.cost" [format]="cost" />
+          <ez-change [value]="a.change" good="down" against="2024 vs 2023" />
+        </div>
+        <div class="chart-well">@if (hMkt() !== null) { <span class="peek num">{{ month(a.labels[hMkt()!]) }} · {{ cost(a.values[hMkt()!]) }}</span> }<ez-line-chart [labels]="a.labels" [series]="[{ name: 'Spend per new customer', values: a.values, fill: true }]" [height]="118" [compact]="true" [legend]="false" [(hover)]="hMkt" [animate]="true" [format]="cost" [formatX]="month" summary="Spend per new customer, month by month, 2023 and 2024" /></div>
+      } @else { <div class="skeleton sk-fig"></div><div class="skeleton sk-chart"></div> }
+      <a class="open" routerLink="/marketing">Spend against results<ez-icon name="right" [size]="14" /></a>
+    </article>
+  </div>
+
+  <section class="plate strip" aria-labelledby="q-strip">
+    <div class="strip-head">
+      <h2 id="q-strip">Before these figures</h2>
+      @if (fresh.value(); as f) {
+        @if (f.gate; as g) {
+          <p class="gate-line" [class.failed]="!g.passed">
+            <ez-icon [name]="g.passed ? 'gate' : 'stop'" [size]="14" />
+            {{ g.passed ? 'Passed the gate' : 'Failed the gate' }}, {{ g.checks_passed }} of {{ g.checks }} checks
+          </p>
+        }
+        @if (f.built_at) { <p>Rebuilt {{ stamp(f.built_at) }}</p> }
+      } @else { <p>Rows the quality rules left out or flagged.</p> }
+    </div>
+    <ul class="rules">
+      @for (r of rules(); track r.rule) {
+        <li>
+          <span class="num rule-n" [class.gate]="r.handling.startsWith('left') || r.handling.startsWith('conversion')">{{ whole(r.rows) }}</span>
+          <span class="rule-t">{{ r.rule }}<span class="muted"> · {{ r.handling }}</span></span>
+        </li>
+      } @empty { <li class="skeleton sk-rule"></li><li class="skeleton sk-rule"></li> }
+    </ul>
+    <a class="open" routerLink="/quality">Data quality<ez-icon name="right" [size]="14" /></a>
+  </section>
+</div>

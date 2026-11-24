@@ -1,0 +1,70 @@
+<div class="page">
+  <header class="page-head">
+    <h1>Reservations</h1>
+    <p>How many bookings turn into business, and what changes it?</p>
+  </header>
+
+  <section class="plate market" aria-labelledby="res-chart">
+    <h2 id="res-chart" class="sr-only">Reservation outcomes per quarter</h2>
+    <div class="market-top">
+      @if (headline(); as h) {
+        <div class="figure">
+          <span class="figure-label">{{ h.label }}
+            <ez-trust subject="the confirmation share">Share of the quarter's reservations whose status is confirmed. Every reservation ends confirmed, pending or cancelled, so the three lines add up to 100 %.</ez-trust>
+          </span>
+          <ez-readout [value]="h.value" [format]="pct" />
+          @if (h.change !== null) { <ez-change [value]="h.change" unit="pts" [smallBelow]="3" [against]="h.against" /> }
+        </div>
+      } @else { <div class="skeleton" style="height: 5.25rem; width: 16rem"></div> }
+    </div>
+    <div class="chart-well">
+      @if (chart(); as c) {
+        <ez-line-chart [labels]="c.labels" [series]="c.series" [domain]="[0, 100]" [height]="280" [format]="pct" [(hover)]="hover"
+                       summary="Share of reservations confirmed, pending and cancelled, per quarter" />
+      } @else { <div class="skeleton" style="height: 310px"></div> }
+    </div>
+    <p class="trust">About a third of reservations end in each outcome, in every quarter since 2022. Nothing in the data moves that split: see the prediction below.</p>
+  </section>
+
+  <div class="grid-2">
+    <section class="plate panel" aria-labelledby="res-cal">
+      <div class="section-head">
+        <h2 id="res-cal">Does the calendar matter?</h2>
+        <p>Confirmed revenue per day</p>
+      </div>
+      @if (days().length) { <ez-outcomes [rows]="days()" label="Revenue per day by type of day" /> } @else { <div class="skeleton" style="height: 9rem"></div> }
+      <p class="trust" style="margin-top: 0.75rem">Ramadan days bring 11&nbsp;% less revenue than other days and public holidays 10&nbsp;% less, but <strong>both gaps could be chance</strong>: not yet a reason to plan around the calendar.
+        <ez-trust subject="the calendar effect">Tested day by day over 2022–2025 (Mann-Whitney): p = 0.10 for Ramadan and 0.15 for public holidays, above the usual 0.05 threshold. See analytics/eda.ipynb.</ez-trust></p>
+    </section>
+
+    <section class="plate panel" aria-labelledby="res-conv">
+      <div class="section-head">
+        <h2 id="res-conv">Website visitors who book, 2022</h2>
+        <p>Median of each week's days</p>
+      </div>
+      @if (conv(); as c) {
+        <div class="chart-well">
+          <ez-line-chart [labels]="c.labels" [series]="[{ name: 'Visitors who book', values: c.values, fill: true }]" [height]="150" [format]="pct2" [formatX]="week" [(hover)]="convHover"
+                         summary="Weekly median share of website visitors who book, 2022" />
+        </div>
+      } @else { <div class="skeleton" style="height: 12rem"></div> }
+      <p class="trust" style="margin-top: 0.75rem">Website traffic exists for 2022 only. Six days with more bookings than visitors are left out; this is the baseline any conversion target should be measured against.</p>
+    </section>
+  </div>
+
+  @if (model(); as m) {
+    <section class="plate panel" aria-labelledby="res-model">
+      <div class="section-head"><h2 id="res-model">Can we tell in advance which bookings will be confirmed?</h2></div>
+      @if (m.passes_gate) {
+        <div class="pass-note"><ez-icon name="gate" [size]="16" /><p>{{ m.conclusion }}</p></div>
+      } @else {
+        <div class="gate-note">
+          <ez-icon name="stop" [size]="16" />
+          <p><strong>No: the prediction was stopped at the gate.</strong> The best model predicts no better than a coin toss. Nothing known at booking time (event, service, region, price, budget, date, returning customer) predicts confirmation in this data, so no prediction is shown rather than a misleading one.</p>
+        </div>
+      }
+    </section>
+  }
+
+  <ez-asks objective="reservations" />
+</div>

@@ -1,0 +1,19 @@
+# Prometheus alerting rules for the analytics API (visible under Alerts in Prometheus; route them with Alertmanager).
+groups:
+  - name: eventzilla-api
+    rules:
+      - alert: ApiDown
+        expr: max(up{job="api"}) == 0 or absent(up{job="api"})
+        for: 2m
+        annotations: { summary: "The analytics API cannot be scraped: the app and the analyst are down." }
+      - alert: ApiServerErrors
+        expr: sum(rate(http_requests_total{job="api",status="5xx"}[5m])) / clamp_min(sum(rate(http_requests_total{job="api"}[5m])), 1e-9) > 0.05
+        for: 10m
+        annotations: { summary: "More than 5 % of API responses are server errors." }
+      - alert: AnalystSlow
+        expr: histogram_quantile(0.95, sum by (le) (rate(eventzilla_analyst_answer_seconds_bucket{job="api"}[15m]))) > 13
+        for: 15m
+        annotations: { summary: "95 % of analyst answers take more than 13 s." }
+      - alert: AnalystInjectionAttempts
+        expr: sum(increase(eventzilla_analyst_questions_total{job="api",outcome="stopped_screen"}[1h])) > 5
+        annotations: { summary: "More than 5 questions stopped as prompt-injection attempts in the last hour." }

@@ -1,0 +1,68 @@
+<div class="page">
+  <header class="page-head">
+    <h1>Customers</h1>
+    <p>Are customers satisfied, do they come back, and who needs attention?</p>
+  </header>
+
+  <section class="plate market" aria-labelledby="cus-chart">
+    <h2 id="cus-chart" class="sr-only">Average rating per quarter</h2>
+    <div class="market-top">
+      @if (headline(); as h) {
+        <div class="figure">
+          <span class="figure-label">{{ h.label }}
+            <ez-trust subject="the rating">Mean of the valid 1 to 5 evaluations of each reservation. 312 ratings outside the scale are left out; reservations without an evaluation are not counted as zero.</ez-trust>
+          </span>
+          <ez-readout [value]="h.value" [format]="rating" unit="/ 5" />
+          @if (h.change !== null) { <ez-change [value]="h.change" unit="abs" [smallBelow]="0.1" [against]="h.against" /> }
+        </div>
+      } @else { <div class="skeleton" style="height: 5.25rem; width: 16rem"></div> }
+      @if (chart(); as c) {
+        <div class="facts">
+          <div class="fact"><span class="label">Rated 4 or more</span><span class="num">{{ pct(c.rating.rated_4_or_more) }}</span></div>
+          <div class="fact"><span class="label">Evaluated</span><span class="num">{{ pct(c.rating.evaluated) }}</span></div>
+          @if (o(); as ov) { <div class="fact"><span class="label">Come back</span><span class="num">{{ pct(ov.returning_customers) }}</span></div> }
+        </div>
+      }
+    </div>
+    <div class="chart-well">
+      @if (chart(); as c) {
+        <ez-line-chart [labels]="c.labels" [series]="c.series" [domain]="[1, 5]" [height]="240" [format]="rating" [(hover)]="hover"
+                       summary="Average rating per quarter, on the 1 to 5 scale" />
+      } @else { <div class="skeleton" style="height: 270px"></div> }
+    </div>
+    <p class="trust">Ratings sit at the middle of the scale (about 3 out of 5) every quarter. "Come back" is the share of customers who booked more than one event.</p>
+  </section>
+
+  <section class="plate panel" aria-labelledby="cus-seg">
+    <div class="section-head">
+      <h2 id="cus-seg">Who the customers are</h2>
+      <p>Grouped by what they did: events, reservations, confirmed revenue, ratings, complaints</p>
+    </div>
+    @if (segments().length) { <ez-outcomes [rows]="segments()" label="Customer segments" /> } @else { <div class="skeleton" style="height: 7rem"></div> }
+    @if (silhouette(); as s) {
+      <p class="trust" style="margin-top: 0.75rem">Two groups, clearly distinct, so each can be treated on its own. The second is the target for a follow-up campaign.
+        <ez-trust subject="the segments">Customers grouped by K-Means on their behaviour. The groups are checked for separation before use: silhouette {{ s.toFixed(2) }}, above the 0.25 the team required.</ez-trust></p>
+    }
+  </section>
+
+  <div class="grid-2">
+    <section class="plate panel" aria-labelledby="cus-svc">
+      <div class="section-head"><h2 id="cus-svc">Rating by service</h2><p>Bars start at 1, the bottom of the scale</p></div>
+      @if (services().length) { <ez-outcomes [rows]="services()" label="Average rating by service" /> } @else { <div class="skeleton" style="height: 10rem"></div> }
+      <p class="trust" style="margin-top: 0.75rem">The services are within a few hundredths of each other: no service stands out.</p>
+    </section>
+
+    <section class="plate panel" aria-labelledby="cus-cmp">
+      <div class="section-head"><h2 id="cus-cmp">Complaints by region</h2><p>Per 100 reservations</p></div>
+      @if (regions().length) { <ez-outcomes [rows]="regions()" label="Complaints per 100 reservations, by region" /> } @else { <div class="skeleton" style="height: 12rem"></div> }
+      @if (spread(); as sp) { <p class="trust" style="margin-top: 0.75rem">The regions are within {{ sp.toFixed(1) }} complaints per 100 reservations of each other: a small spread, not a regional problem.</p> }
+    </section>
+  </div>
+
+  <section class="plate panel" aria-labelledby="cus-sub">
+    <div class="section-head"><h2 id="cus-sub">What customers complain about</h2><p>Open and closed complaints</p></div>
+    @if (subjects().length) { <ez-outcomes [rows]="subjects()" label="Complaints by subject" /> } @else { <div class="skeleton" style="height: 10rem"></div> }
+  </section>
+
+  <ez-asks objective="customers" />
+</div>

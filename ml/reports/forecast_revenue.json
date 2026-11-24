@@ -1,0 +1,266 @@
+{
+  "generated_at": "2026-11-24T16:06:58+00:00",
+  "objective": "DSO1 \u00b7 forecast monthly confirmed revenue (serves BO1)",
+  "data": {
+    "months": 48,
+    "from": "2022-01",
+    "to": "2025-12",
+    "holdout_months": 12,
+    "mean_monthly_revenue": 1240347
+  },
+  "gate": "SMAPE < 30 % and MASE < 1",
+  "holdout_results": [
+    {
+      "model": "SARIMA(1,0,1)(1,0,0,12)",
+      "smape": 15.58,
+      "mase": 0.713,
+      "passes_gate": true
+    },
+    {
+      "model": "historical mean",
+      "smape": 15.73,
+      "mase": 0.72,
+      "passes_gate": true
+    },
+    {
+      "model": "naive",
+      "smape": 16.33,
+      "mase": 0.746,
+      "passes_gate": true
+    },
+    {
+      "model": "Holt-Winters",
+      "smape": 17.94,
+      "mase": 0.79,
+      "passes_gate": true
+    },
+    {
+      "model": "seasonal naive",
+      "smape": 22.5,
+      "mase": 0.988,
+      "passes_gate": true
+    }
+  ],
+  "chosen_model": "historical mean",
+  "conclusion": "historical mean is published: it passes the gate (SMAPE 15.73 %, MASE 0.72) and is within 0.5 points of the best model, SARIMA(1,0,1)(1,0,0,12) (15.58 %), while being simpler. On a flat series, the more complex models add nothing that the holdout can tell apart from noise.",
+  "history": [
+    {
+      "month": "2022-01",
+      "revenue": 1337390
+    },
+    {
+      "month": "2022-02",
+      "revenue": 969702
+    },
+    {
+      "month": "2022-03",
+      "revenue": 1180494
+    },
+    {
+      "month": "2022-04",
+      "revenue": 1254723
+    },
+    {
+      "month": "2022-05",
+      "revenue": 1082354
+    },
+    {
+      "month": "2022-06",
+      "revenue": 1124154
+    },
+    {
+      "month": "2022-07",
+      "revenue": 1483464
+    },
+    {
+      "month": "2022-08",
+      "revenue": 1159522
+    },
+    {
+      "month": "2022-09",
+      "revenue": 1248975
+    },
+    {
+      "month": "2022-10",
+      "revenue": 1620477
+    },
+    {
+      "month": "2022-11",
+      "revenue": 1231702
+    },
+    {
+      "month": "2022-12",
+      "revenue": 1013709
+    },
+    {
+      "month": "2023-01",
+      "revenue": 1391712
+    },
+    {
+      "month": "2023-02",
+      "revenue": 1064511
+    },
+    {
+      "month": "2023-03",
+      "revenue": 907515
+    },
+    {
+      "month": "2023-04",
+      "revenue": 1312396
+    },
+    {
+      "month": "2023-05",
+      "revenue": 1330897
+    },
+    {
+      "month": "2023-06",
+      "revenue": 1156313
+    },
+    {
+      "month": "2023-07",
+      "revenue": 1271840
+    },
+    {
+      "month": "2023-08",
+      "revenue": 1119215
+    },
+    {
+      "month": "2023-09",
+      "revenue": 1488242
+    },
+    {
+      "month": "2023-10",
+      "revenue": 989102
+    },
+    {
+      "month": "2023-11",
+      "revenue": 1339215
+    },
+    {
+      "month": "2023-12",
+      "revenue": 1397495
+    },
+    {
+      "month": "2024-01",
+      "revenue": 1524313
+    },
+    {
+      "month": "2024-02",
+      "revenue": 901377
+    },
+    {
+      "month": "2024-03",
+      "revenue": 819103
+    },
+    {
+      "month": "2024-04",
+      "revenue": 1646204
+    },
+    {
+      "month": "2024-05",
+      "revenue": 1240881
+    },
+    {
+      "month": "2024-06",
+      "revenue": 1420831
+    },
+    {
+      "month": "2024-07",
+      "revenue": 1053315
+    },
+    {
+      "month": "2024-08",
+      "revenue": 939204
+    },
+    {
+      "month": "2024-09",
+      "revenue": 1353481
+    },
+    {
+      "month": "2024-10",
+      "revenue": 1100209
+    },
+    {
+      "month": "2024-11",
+      "revenue": 1525660
+    },
+    {
+      "month": "2024-12",
+      "revenue": 1183259
+    },
+    {
+      "month": "2025-01",
+      "revenue": 1588031
+    },
+    {
+      "month": "2025-02",
+      "revenue": 1254631
+    },
+    {
+      "month": "2025-03",
+      "revenue": 1066920
+    },
+    {
+      "month": "2025-04",
+      "revenue": 1351962
+    },
+    {
+      "month": "2025-05",
+      "revenue": 1245364
+    },
+    {
+      "month": "2025-06",
+      "revenue": 1475692
+    },
+    {
+      "month": "2025-07",
+      "revenue": 1425471
+    },
+    {
+      "month": "2025-08",
+      "revenue": 1770028
+    },
+    {
+      "month": "2025-09",
+      "revenue": 1073281
+    },
+    {
+      "month": "2025-10",
+      "revenue": 1153850
+    },
+    {
+      "month": "2025-11",
+      "revenue": 884266
+    },
+    {
+      "month": "2025-12",
+      "revenue": 1064219
+    }
+  ],
+  "forecast": [
+    {
+      "month": "2026-01",
+      "revenue": 1240347
+    },
+    {
+      "month": "2026-02",
+      "revenue": 1240347
+    },
+    {
+      "month": "2026-03",
+      "revenue": 1240347
+    },
+    {
+      "month": "2026-04",
+      "revenue": 1240347
+    },
+    {
+      "month": "2026-05",
+      "revenue": 1240347
+    },
+    {
+      "month": "2026-06",
+      "revenue": 1240347
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+<div class="page">
+  <header class="page-head">
+    <h1>Revenue</h1>
+    <p>Is the business making money, and where does it come from?</p>
+  </header>
+
+  <section class="plate market" aria-labelledby="rev-chart">
+    <h2 id="rev-chart" class="sr-only">Monthly confirmed revenue</h2>
+    <div class="market-top">
+      @if (headline(); as h) {
+        <div class="figure">
+          <span class="figure-label">{{ h.label }}
+            <ez-trust subject="revenue">Sum of the agreed price of confirmed reservations, by reservation date. Pending and cancelled reservations count zero. The source documents no currency, so none is shown.</ez-trust>
+          </span>
+          <ez-readout [value]="h.value" [format]="compact" />
+          @if (h.change !== null) { <ez-change [value]="h.change" [against]="h.against" /> } @else { <span class="muted">no month a year before</span> }
+        </div>
+      } @else { <div class="skeleton" style="height: 5.25rem; width: 16rem"></div> }
+      <div class="controls">
+        <ez-segmented [options]="ranges" [(value)]="range" label="Period shown" />
+        <button type="button" class="key" [attr.aria-pressed]="withForecast()" (click)="withForecast.set(!withForecast())">Forecast</button>
+      </div>
+    </div>
+    <div class="chart-well">
+      @if (chart(); as c) {
+        <ez-line-chart [labels]="c.labels" [series]="c.series" [height]="300" [format]="compact" [formatX]="month" [(hover)]="hover"
+                       summary="Monthly confirmed revenue, with the six-month forecast" />
+      } @else { <div class="skeleton" style="height: 330px"></div> }
+    </div>
+    @if (chosen(); as ch) {
+      <div class="pass-note">
+        <ez-icon name="gate" [size]="16" />
+        <p><strong>The forecast passed its check.</strong> It is the {{ ch.model }} of the past months, tested on 2025 before being trusted: it missed by {{ ch.smape }}&nbsp;% on average, under the 30&nbsp;% limit the team set, and beat the naive "same as last month" guess. A more complex model was barely more accurate, so the simpler one is published. Revenue is flat, so the forecast is too.</p>
+      </div>
+    }
+  </section>
+
+  <section class="plate panel" aria-labelledby="rev-by">
+    <div class="section-head">
+      <h2 id="rev-by">Where it comes from</h2>
+      <ez-segmented [options]="breakdowns" [(value)]="breakdown" label="Break revenue down by" />
+    </div>
+    @if (by.value()) {
+      <ez-outcomes [rows]="outcomes()" label="Revenue by {{ breakdown() }}" />
+    } @else { <div class="skeleton" style="height: 14rem"></div> }
+    @if (isGeo()) {
+      <p class="trust" style="margin-top: 0.75rem"><strong>Read "per 1,000 inhabitants" with care.</strong> Across governorates, revenue does not follow population at all: the smallest governorates score highest per inhabitant because few people live there, not because they are stronger markets.</p>
+    } @else {
+      <p class="trust" style="margin-top: 0.75rem">Share of confirmed revenue, 2022–2025. The bars compare each group with the largest.</p>
+    }
+  </section>
+
+  <ez-asks objective="revenue" />
+</div>

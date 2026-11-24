@@ -1,0 +1,200 @@
+{
+  "id": "ezFreshnessWatch01",
+  "name": "EventZilla \u00b7 data freshness watch",
+  "nodes": [
+    {
+      "id": "1408af25-b8a0-5877-9180-ff41a8a55b2e",
+      "name": "Every hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "8468041d-5ccd-5bad-bdda-42ddae17391f",
+      "name": "Called by another workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        160
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "a739fbfc-2c09-51b8-85a1-59bb21d59b98",
+      "name": "Read status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "url": "http://api:8000/api/status",
+        "options": {
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "05932de9-088f-5e6e-a337-f20e504149e5",
+      "name": "Fresh and gated?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// The figures are trusted only if the last rebuild is recent and the star schema passed its gate.\nconst s = $input.first().json;\nconst MAX_AGE_H = 26;  // daily run at 05:00, plus slack\nconst ageH = s.built_at ? (Date.now() - new Date(s.built_at).getTime()) / 36e5 : Infinity;\nconst problems = [];\nif (!s.built_at) problems.push('no rebuild recorded yet');\nelse if (ageH > MAX_AGE_H) problems.push(`figures are ${ageH.toFixed(1)} h old (limit ${MAX_AGE_H} h)`);\nif (!s.gate) problems.push('no gate result recorded yet');\nelse if (!s.gate.passed) problems.push(`gate failed: ${s.gate.checks_passed} of ${s.gate.checks} checks passed`);\nreturn [{ json: { ok: problems.length === 0, problems, age_hours: Number(ageH.toFixed(1)),\n                  gate: s.gate, built_at: s.built_at, checked_at: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "ecf1af56-6ee1-5104-bbeb-445ce0d5ca50",
+      "name": "OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ok",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "9cc21043-c3da-5eef-9cf1-0cb31731d67c",
+      "name": "Figures can be presented",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        880,
+        -100
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "e274dec0-4195-5674-a659-69f213eeb2b8",
+      "name": "Alert: do not present the figures",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        880,
+        100
+      ],
+      "parameters": {
+        "errorMessage": "={{ 'EventZilla figures must not be presented: ' + $json.problems.join('; ') }}"
+      }
+    }
+  ],
+  "connections": {
+    "Every hour": {
+      "main": [
+        [
+          {
+            "node": "Read status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read status": {
+      "main": [
+        [
+          {
+            "node": "Fresh and gated?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fresh and gated?": {
+      "main": [
+        [
+          {
+            "node": "OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OK?": {
+      "main": [
+        [
+          {
+            "node": "Figures can be presented",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alert: do not present the figures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Called by another workflow": {
+      "main": [
+        [
+          {
+            "node": "Read status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Africa/Tunis",
+    "saveManualExecutions": true
+  },
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {}
+}
