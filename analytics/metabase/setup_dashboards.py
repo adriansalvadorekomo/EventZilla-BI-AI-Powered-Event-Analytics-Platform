@@ -110,7 +110,8 @@ DASHBOARDS = [
          bar("Service", "Confirmed revenue"), (12, 11, 12, 6)),
         ("Where is revenue earned, relative to population?",
          "Confirmed revenue per 1,000 inhabitants by region: the view for deciding where to recruit providers.",
-         "row", """select g.region as "Region", round(sum(f.revenue) * 1000.0 / max(r.pop)) as "Revenue per 1,000 inhabitants"
+         "row", """select g.region as "Region",
+                   round(sum(f.revenue) * 1000.0 / max(r.pop)) as "Revenue per 1,000 inhabitants"
             from marts.fact_reservation f join marts.dim_geography g using (governorate_id)
             join (select region, sum(population_2024) pop from marts.dim_geography group by 1) r using (region)
             group by 1 order by 2 desc""", bar("Region", "Revenue per 1,000 inhabitants"), (0, 17, 12, 6)),
@@ -126,10 +127,10 @@ DASHBOARDS = [
         ("Cancellation rate", "Share of reservations cancelled.", "scalar",
          "select round(100.0 * avg(is_cancelled::int), 1) as rate from marts.fact_reservation",
          scalar(suffix=" %", decimals=1), (8, 0, 8, 4)),
-        ("Website conversion", "Reservations per visitor on a typical day; the baseline for the"
-         " +15 % target. Impossible days are excluded.", "scalar",
-         "select round(100.0 * percentile_cont(0.5) within group (order by conversion_rate)::numeric, 1) as conv "
-         "from reporting.rpt_site_traffic_daily where is_valid", scalar(suffix=" %", decimals=1), (16, 0, 8, 4)),
+        ("Website conversion", ("Reservations per visitor on a typical day; the baseline for the"
+         " +15 % target. Impossible days are excluded."), "scalar",
+         ("select round(100.0 * percentile_cont(0.5) within group (order by conversion_rate)::numeric, 1) as conv "
+         "from reporting.rpt_site_traffic_daily where is_valid"), scalar(suffix=" %", decimals=1), (16, 0, 8, 4)),
         ("Where do reservations end up, quarter by quarter?", "Share of reservations by status.", "line",
          """select date_trunc('quarter', reservation_date)::date as quarter,
                    round(100.0 * avg(is_confirmed::int), 1) as "Confirmed %",
@@ -139,8 +140,8 @@ DASHBOARDS = [
          line("quarter", ["Confirmed %", "Pending %", "Cancelled %"], "Confirmed %", "% of reservations"),
          (0, 4, 24, 7)),
         ("Do Ramadan and public holidays change daily revenue?",
-         "Average confirmed revenue per day. Ramadan -11 %, holidays -10 %: not statistically significant "
-         "(p = 0.10 and 0.15, see analytics/eda.ipynb).", "bar",
+         ("Average confirmed revenue per day. Ramadan -11 %, holidays -10 %: not statistically significant "
+         "(p = 0.10 and 0.15, see analytics/eda.ipynb)."), "bar",
          """with d as (select d.date_day, d.is_ramadan, d.is_holiday, coalesce(sum(f.revenue), 0) rev
                        from marts.dim_date d left join marts.fact_reservation f on f.reservation_date = d.date_day
                        group by 1, 2, 3)
@@ -149,7 +150,8 @@ DASHBOARDS = [
          bar("Days", "Revenue per day"), (0, 11, 12, 6)),
         ("Website conversion through 2022", "Weekly median of reservations per visitor.", "line",
          """select date_trunc('week', traffic_date)::date as week,
-                   round(100.0 * percentile_cont(0.5) within group (order by conversion_rate)::numeric, 2) as "Conversion %"
+                   round(100.0 * percentile_cont(0.5) within group (order by conversion_rate)::numeric, 2)
+                     as "Conversion %"
             from reporting.rpt_site_traffic_daily where is_valid group by 1 order by 1""",
          line("week", ["Conversion %"], "Conversion %", "%"), (12, 11, 12, 6)),
     ]),
@@ -158,8 +160,8 @@ DASHBOARDS = [
          "select round(avg(rating_avg), 2) as r from marts.fact_reservation", scalar(suffix=" / 5", decimals=2),
          (0, 0, 6, 4)),
         ("Rated 4 or more", "Share of evaluated reservations.", "scalar",
-         "select round(100.0 * avg((rating_avg >= 4)::int), 1) as s from marts.fact_reservation "
-         "where rating_avg is not null", scalar(suffix=" %", decimals=1), (6, 0, 6, 4)),
+         ("select round(100.0 * avg((rating_avg >= 4)::int), 1) as s from marts.fact_reservation "
+         "where rating_avg is not null"), scalar(suffix=" %", decimals=1), (6, 0, 6, 4)),
         ("Returning customers", "Customers with two events or more; the baseline for the +20 % target.", "scalar",
          "select round(100.0 * avg(is_returning::int), 1) as s from marts.dim_beneficiary where events > 0",
          scalar(suffix=" %", decimals=1), (12, 0, 6, 4)),
@@ -167,7 +169,8 @@ DASHBOARDS = [
          "select sum(complaints) from reporting.rpt_complaint_summary where status = 'open'", scalar(decimals=0),
          (18, 0, 6, 4)),
         ("Where do customers complain most?", "Complaints per 100 reservations by region.", "row",
-         """select g.region as "Region", round(100.0 * sum(p.complaints) / max(r.n), 1) as "Complaints per 100 reservations"
+         """select g.region as "Region",
+                   round(100.0 * sum(p.complaints) / max(r.n), 1) as "Complaints per 100 reservations"
             from marts.dim_provider p join marts.dim_geography g using (governorate_id)
             join (select g2.region, count(*) n from marts.fact_reservation f
                   join marts.dim_geography g2 using (governorate_id) group by 1) r on r.region = g.region
@@ -190,7 +193,8 @@ DASHBOARDS = [
         ("New customers, 2023-2024", "Reported by the marketing source.", "scalar",
          "select sum(new_beneficiaries) from reporting.rpt_marketing_monthly", scalar(decimals=0), (8, 0, 8, 4)),
         ("Cost per new customer", "Spend divided by new customers, all campaigns.", "scalar",
-         "select round(sum(marketing_spend) / nullif(sum(new_beneficiaries), 0), 1) from reporting.rpt_marketing_monthly",
+         ("select round(sum(marketing_spend) / nullif(sum(new_beneficiaries), 0), 1) "
+          "from reporting.rpt_marketing_monthly"),
          scalar(decimals=1), (16, 0, 8, 4)),
         ("Does revenue follow marketing spend?",
          "Monthly spend and confirmed revenue. No significant link (rho = -0.19, p = 0.37; see analytics/eda.ipynb).",
@@ -256,8 +260,9 @@ def main() -> None:
     for c in api("GET", "/collection"):
         if c.get("name") == "EventZilla" and not c.get("archived"):
             api("PUT", f"/collection/{c['id']}", json={"archived": True})
-    coll = api("POST", "/collection", json={"name": "EventZilla", "color": SIGNAL,
-                                             "description": "One dashboard per business objective (docs/GIMSI.md)"})["id"]
+    coll = api("POST", "/collection", json={
+        "name": "EventZilla", "color": SIGNAL,
+        "description": "One dashboard per business objective (docs/GIMSI.md)"})["id"]
     for title, subtitle, cards in DASHBOARDS:
         dash = api("POST", "/dashboard", json={"name": title, "description": subtitle, "collection_id": coll})
         dashcards = []
@@ -270,7 +275,7 @@ def main() -> None:
                               "size_x": w, "size_y": h})
         bottom = max(row + h for *_, (col, row, w, h) in cards)
         dashcards.append({"id": -(len(cards) + 1), "card_id": None, "col": 0, "row": bottom, "size_x": 24,
-                          "size_y": 3, "visualization_settings": {
+                          "size_y": 4, "visualization_settings": {
                               "virtual_card": {"name": None, "display": "text", "visualization_settings": {},
                                                "dataset_query": {}, "archived": False},
                               "text": TAKEAWAYS[title]}})

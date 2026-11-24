@@ -58,7 +58,7 @@ services:
       - ./orchestration/dags:/opt/airflow/dags:ro
       - ./orchestration/webserver_config.py:/opt/airflow/webserver_config.py:ro
       - .:/opt/eventzilla:ro
-      - dbt_target:/opt/eventzilla-runtime
+      - airflow_runtime:/opt/eventzilla-runtime   # dbt target and logs, GX project and Data Docs
     extra_hosts: ["host.docker.internal:host-gateway"]
     ports: ["127.0.0.1:${AIRFLOW_PORT:-8080}:8080"]
     depends_on:
@@ -137,7 +137,7 @@ services:
     volumes: ["./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro"]
     ports: ["127.0.0.1:3000:3000"]
 
-volumes: { warehouse: {}, landing: {}, n8n: {}, dbt_target: {} }
+volumes: { warehouse: {}, landing: {}, n8n: {}, airflow_runtime: {} }
 
 networks:
   airbyte:                      # the Docker network of Airbyte's kind node (abctl): lets Airbyte reach these two

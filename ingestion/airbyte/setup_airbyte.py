@@ -16,7 +16,9 @@ import time
 import requests
 
 API = os.environ.get("AIRBYTE_API", "http://localhost:8006/api/public/v1").rstrip("/")
-SOURCE, DESTINATION, CONNECTION = "EventZilla landing (S3)", "EventZilla warehouse (raw)", "EventZilla landing → warehouse"
+SOURCE = "EventZilla landing (S3)"
+DESTINATION = "EventZilla warehouse (raw)"
+CONNECTION = "EventZilla landing → warehouse"
 ENTITIES = ["beneficiary", "provider", "category", "subcategory", "category_service", "service", "event",
             "reservation", "evaluation", "complaint", "site_traffic", "marketing_spend", "competitor", "location",
             "season", "platform_review", "tn_governorate", "tn_holiday"]

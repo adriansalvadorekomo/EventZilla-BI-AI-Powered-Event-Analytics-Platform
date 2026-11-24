@@ -1,0 +1,13 @@
+# Tooling configuration for the platform's Python (ingestion, orchestration, quality, analytics, backend).
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["frontend", "ml/notebooks", "*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "BLE", "ISC"]
+ignore = ["S101"]          # assert is used for parsing invariants in scripts
+
+[tool.bandit]
+# Every severity counts; nothing is skipped globally. A finding is either fixed or justified inline (# nosec Bxxx).
+exclude_dirs = ["frontend", "ml/notebooks", "node_modules", ".venv"]

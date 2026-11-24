@@ -55,7 +55,8 @@ def governorates() -> list[dict]:
             rows.append({"governorate": name, "population_2024": pop.replace(",", ""),
                          "area_km2": area.replace(",", ""), "region": region,
                          "source_url": WIKI + "Governorates_of_Tunisia", "scraped_at": SCRAPED_AT})
-    assert len(rows) == 24, f"expected 24 governorates, parsed {len(rows)}"
+    if len(rows) != 24:  # Tunisia has 24 governorates: anything else means the page changed
+        raise ValueError(f"expected 24 governorates, parsed {len(rows)}")
     return rows
 
 
@@ -75,10 +76,11 @@ def holidays() -> tuple[list[dict], list[str]]:
     page = "Public_holidays_in_Tunisia"
     # national holidays only (Gregorian months); the page also lists the Islamic ones by Hijri month
     national = r"^- (" + "|".join(MONTHS) + r") (\d{1,2}): \[([^\]]+)\]"
-    for month, day, name in re.findall(national, scrape(page), re.M):
+    for month, day, name in re.findall(national, scrape(page), re.MULTILINE):
         for year in YEARS:
             rows.append({"date": dt.date(year, MONTHS[month], int(day)).isoformat(), "holiday": name,
-                         "kind": "national", "source_url": WIKI + page, "wikipedia_check": "", "scraped_at": SCRAPED_AT})
+                         "kind": "national", "source_url": WIKI + page, "wikipedia_check": "",
+                         "scraped_at": SCRAPED_AT})
     for name, hm, hd, length, article in ISLAMIC:
         listed = wikipedia_dates(article, scrape(article))
         for hijri_year in range(1443, 1448):
@@ -96,24 +98,45 @@ def holidays() -> tuple[list[dict], list[str]]:
     return rows, report
 
 
+def s3_client():
+    import boto3  # only needed with --s3
+
+    return boto3.client("s3", endpoint_url=os.environ["S3_ENDPOINT"], aws_access_key_id=os.environ["S3_ACCESS_KEY"],
+                        aws_secret_access_key=os.environ["S3_SECRET_KEY"])
+
+
+def landed_age_days() -> float:
+    """Age of the oldest landed enrichment file, in days (infinite if one is missing)."""
+    ages = []
+    for entity in ("tn_governorate", "tn_holiday"):
+        from botocore.exceptions import ClientError
+
+        try:
+            head = s3_client().head_object(Bucket=os.environ.get("LANDING_BUCKET", "landing"),
+                                           Key=f"eventzilla/{entity}/{entity}.csv")
+        except ClientError:  # not landed yet
+            return float("inf")
+        ages.append((dt.datetime.now(dt.UTC) - head["LastModified"]).total_seconds() / 86400)
+    return max(ages)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--out", help="also write the CSVs to this folder")
     parser.add_argument("--s3", action="store_true", help="upload to the landing bucket")
+    parser.add_argument("--max-age-days", type=int, default=30,
+                        help="with --s3: skip (no Firecrawl credits) if the landed copy is younger than this")
     args = parser.parse_args()
     if not os.environ.get("FIRECRAWL_KEY"):
         print("FIRECRAWL_KEY not set: the enrichment landed by the last run is kept")
         return
+    if args.s3 and landed_age_days() < args.max_age_days:
+        print(f"landed enrichment is {landed_age_days():.0f} days old (< {args.max_age_days}): kept, nothing scraped")
+        return
 
     holiday_rows, report = holidays()
     entities = {"tn_governorate": governorates(), "tn_holiday": holiday_rows}
-    s3 = None
-    if args.s3:
-        import boto3
-
-        s3 = boto3.client("s3", endpoint_url=os.environ["S3_ENDPOINT"],
-                          aws_access_key_id=os.environ["S3_ACCESS_KEY"],
-                          aws_secret_access_key=os.environ["S3_SECRET_KEY"])
+    s3 = s3_client() if args.s3 else None
     for entity, rows in entities.items():
         buf = io.StringIO()
         writer = csv.DictWriter(buf, fieldnames=list(rows[0]))
