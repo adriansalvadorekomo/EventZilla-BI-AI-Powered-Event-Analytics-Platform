@@ -10,13 +10,14 @@ than its spread. Writes ml/reports/predict_confirmation.json.
 """
 
 import numpy as np
-from common import query, write_report
 from sklearn.compose import ColumnTransformer
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import OneHotEncoder
+
+from common import query, write_report
 
 CATEGORICAL = ["event_type", "service_category", "region"]
 NUMERIC = ["final_price", "list_price", "budget", "month", "weekday", "is_holiday", "is_ramadan", "booked_before"]

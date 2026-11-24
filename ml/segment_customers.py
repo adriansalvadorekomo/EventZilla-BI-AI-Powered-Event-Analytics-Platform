@@ -9,10 +9,11 @@ k chosen by silhouette. Each segment is described by its medians and named from 
 """
 
 import numpy as np
-from common import query, write_report
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
+
+from common import query, write_report
 
 FEATURES = ["events", "reservations", "confirmed_revenue", "confirmed_share", "rating", "complaints"]
 

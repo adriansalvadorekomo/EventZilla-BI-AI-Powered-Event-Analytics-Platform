@@ -16,9 +16,10 @@ import warnings
 
 import numpy as np
 import pandas as pd
-from common import query, write_report
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.statespace.sarimax import SARIMAX
+
+from common import query, write_report
 
 HOLDOUT, HORIZON, SEASON = 12, 6, 12
 TOLERANCE = 0.5  # SMAPE points
