@@ -9,6 +9,5 @@ backend/mlruns
 ml/forecasting
 ml/notebooks
 docs
-etl/talend
-etl/airflow
+legacy
 data
