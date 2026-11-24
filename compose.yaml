@@ -31,7 +31,7 @@ services:
 
   landing:                      # S3-compatible landing zone (SeaweedFS), read by Airbyte's S3 source
     image: chrislusf/seaweedfs:4.55
-    command: server -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json -master.volumeSizeLimitMB=256
+    command: server -ip.bind=0.0.0.0 -dir=/data -s3 -s3.config=/etc/seaweedfs/s3.json -master.volumeSizeLimitMB=256
     volumes:
       - landing:/data
       - ./ingestion/s3.json:/etc/seaweedfs/s3.json:ro
