@@ -1,251 +1,217 @@
-# EventZilla BI — AI-Powered Event Analytics Platform
+# EventZilla — event analytics on a gated data platform
 
-**End-to-end event analytics platform** — star-schema warehouse, ETL, ML forecasting/anomaly detection, NL-to-SQL, and containerized microservices.
+An event-services marketplace's data, loaded every morning into **one star schema that is tested and checked
+before anyone reads it**, then read by managers in an analysis app and Metabase, with an analyst that answers
+questions from the warehouse and shows its work.
 
-> Academic team project (6 people). My scope: integration, Docker/nginx delivery, and chatbot/API fixes.
+> **v1 (2025–26)** was an academic team project of six people (Talend, Power BI, FastAPI); my scope was
+> integration, Docker/nginx delivery and chatbot/API fixes. Its warehouse was lost. **v2 (November 2026)**
+> rebuilds the platform from the same source structure, designed and built alone. The data is **synthetic**:
+> the method and the checks are real, the figures are not company results. v1 is kept in tag
+> [`v1-talend`](../../tree/v1-talend).
 
-<p>
-  <a href="https://deepwiki.com/adriansalvadorekomo/Esprit-PABI-4ERPBI6-2526-EventZella"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" /></a>
-</p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/c4/c4-container-dark.svg">
+  <img src="docs/diagrams/c4/c4-container-light.svg" width="100%" alt="C4 container diagram of EventZilla. Managers open the Angular analysis app, which calls the FastAPI service; the API asks Groq to screen questions and write SQL, and reads the PostgreSQL warehouse through a read-only role. Metabase reads the warehouse. Prometheus scrapes the API and Grafana reads Prometheus; n8n calls the API. Airflow lands files in a SeaweedFS S3 bucket, scrapes Firecrawl monthly and triggers Airbyte, which reads the bucket and loads the raw schema; Airflow then runs dbt and Great Expectations on the warehouse.">
+</picture>
 
-<p>
-  <sub>👋 Hi, I'm <a href="https://github.com/adriansalvadorekomo"><b>Adrian Salvador Ekomo</b></a> — Computer Engineering student building toward a <b>Junior Data Engineer</b> role. This repo is my proof of work.</sub>
-</p>
+## Situation · Task · Action · Result · Learning
 
-<p>
-  <sub>📖 Full wiki: <a href="https://deepwiki.com/adriansalvadorekomo/Esprit-PABI-4ERPBI6-2526-EventZella">deepwiki.com/adriansalvadorekomo/Esprit-PABI-4ERPBI6-2526-EventZella</a></sub>
-</p>
+- **Situation.** v1 loaded an Excel workbook through Talend into a warehouse whose fact table kept **428 of
+  18,000** reservations, and nothing said so. Then the warehouse was lost.
+- **Task.** Rebuild it so that every figure is checked before a manager reads it, and say plainly what was left
+  out and why.
+- **Action.**
+  - The workbook and two public reference tables scraped with Firecrawl land in an S3 bucket.
+  - Airbyte loads them into PostgreSQL, and dbt builds one Kimball star with 43 tests.
+  - Great Expectations gates the result; Airflow runs it all at 05:00.
+  - Managers read the business objectives (GIMSI) in Metabase and in an Angular app, whose analyst runs only
+    guarded, read-only SQL.
+- **Result.**
+  - **18,000 of 18,000** reservations kept.
+  - **79 dbt nodes** and **15 of 15** gate checks pass.
+  - **4 kinds of source defect** are isolated and counted, not hidden.
+  - The daily run takes about **60 s**; Bandit reports **0** findings.
+- **Learning.** A model that predicts no better than chance (AUC 0.50) is a result too: the app says so instead
+  of showing a prediction, and the simplest forecast that passes its gate is the one published.
 
----
+All figures, with the command that reproduces each: [docs/KEY_RESULTS.md](docs/KEY_RESULTS.md).
 
-## Contents
+## What it does
 
-- [1. Project Overview](#1-project-overview)
-- [2. Architecture](#2-architecture)
-  - [Overall Architecture Diagram](#overall-architecture-diagram)
-  - [Architecture Diagram Sources (D2 · Graphviz)](#architecture-diagram-sources-d2--graphviz)
-  - [The 11 Microservices](#the-11-microservices)
-  - [End-to-End Data Flow](#end-to-end-data-flow)
-- [3. Data Platform — ETL & Warehouse](#3-data-platform--etl--warehouse)
-- [4. Backend & AI Services](#4-backend--ai-services)
-- [5. Machine Learning & MLOps](#5-machine-learning--mlops)
-- [6. Frontend & BI](#6-frontend--bi)
-- [7. Infrastructure & Observability](#7-infrastructure--observability)
-- [8. Getting Started](#8-getting-started)
-- [9. Tech Stack](#9-tech-stack)
-- [10. Conclusion](#10-conclusion)
-
----
-
-## 1. Project Overview
-
-Event organizers drown in disconnected data — ticketing here, bookings there, marketing spend somewhere else. Nobody can answer "which events actually make money?" without a week of spreadsheet surgery.
-
-EventZilla BI is our answer: an AI-powered analytics platform that unifies event, booking, and marketing data into one star-schema warehouse, forecasts demand, detects anomalies, and lets anyone ask questions in plain language. Six of us built it as an academic project; I owned the seams that hold a platform together — integration across services, Docker/nginx delivery, and the chatbot/API fixes that kept the natural-language interface reliable end to end.
-
-- **Status:** Platform live via Docker Compose — warehouse, ML models, chatbot, dashboards, and monitoring all running.
-- **Full wiki:** [deepwiki.com/adriansalvadorekomo/Esprit-PABI-4ERPBI6-2526-EventZella](https://deepwiki.com/adriansalvadorekomo/Esprit-PABI-4ERPBI6-2526-EventZella)
-
----
-
-## 2. Architecture
-
-### Overall Architecture Diagram
-
-![EventZilla data-platform architecture](docs/architecture.svg)
-
-```mermaid
-flowchart TB
-    subgraph SRC["📥 Source Systems"]
-        EV[("Events")]
-        BK[("Bookings")]
-        MK[("Marketing")]
-    end
-
-    subgraph INGEST["🔄 Ingestion & ETL"]
-        TA(["Talend<br/>job_master_sa · job_master_dw"])
-        AF(["Airflow<br/>AUTOMATIZATION"])
-    end
-
-    subgraph DW["🗄️ Warehouse — PostgreSQL"]
-        ST[("Staging")]
-        FC[("Fact_Revenues<br/>+ 13 dimensions")]
-    end
-
-    subgraph ML["🤖 ML & MLOps"]
-        PR("Prophet<br/>forecast · MAPE < 15%")
-        AN("statsmodels<br/>anomaly detection")
-        SK("scikit-learn<br/>classification")
-        MF(["MLflow<br/>registry"])
-        RN(["n8n<br/>retraining"])
-    end
-
-    subgraph SERVE["🖥️ Serving"]
-        FA("FastAPI<br/>api/main.py")
-        FL("Flask<br/>legacy · app.py")
-        NLSQL("NL-to-SQL chatbot<br/>LLaMA 3.3")
-        NG("Angular<br/>4 role profiles")
-        PBI("Power BI<br/>deep-dive")
-    end
-
-    subgraph OPS["⚙️ Platform"]
-        NX(["nginx<br/>reverse proxy"])
-        PM(["Prometheus<br/>+ Grafana"])
-        DC(["Docker Compose<br/>11 microservices"])
-    end
-
-    EV --> TA
-    BK --> TA
-    MK --> TA
-    TA --> AF
-    AF --> ST
-    ST --> FC
-    FC --> PR
-    FC --> AN
-    FC --> SK
-    PR --> MF
-    AN --> MF
-    SK --> MF
-    MF --> NLSQL
-    FC --> NLSQL
-    NLSQL --> FA
-    FA --> NG
-    FL --> NG
-    FC --> PBI
-    DC -.->|"hosts"| FA
-    DC -.->|"hosts"| NG
-    DC -.->|"hosts"| NLSQL
-    NX -.->|"routes"| FA
-    NX -.->|"routes"| NG
-    PM -.->|"watches"| DC
-    RN -.->|"retrains"| MF
-```
-
-*Source systems flow through Talend ETL and Airflow ingestion into a PostgreSQL
-star-schema warehouse organized around business questions. MLflow-tracked models
-serve a natural-language interface over 11 Dockerized microservices behind nginx.*
-
-### Architecture Diagram Sources (D2 · Graphviz · Mermaid)
-
-The diagrams are maintained as text — version-controlled, easy to update, with SVG committed for direct viewing.
-
-- **Mermaid source** — [`docs/architecture.mmd`](docs/architecture.mmd), rendered natively by GitHub above
-- **D2 source** — [`docs/architecture.d2`](docs/architecture.d2), the preferred format for readability:
-  `d2 docs/architecture.d2 docs/architecture.svg`
-- **Graphviz (DOT) source** — [`docs/architecture.dot`](docs/architecture.dot), for broader compatibility:
-  `dot -Tsvg docs/architecture.dot -o docs/architecture-gv.svg`
-
-### The 11 Microservices
-
-Traffic is routed by Nginx across 11 containerized services orchestrated with Docker Compose:
-
-| Service | Role / Technology | Entry point |
-|---|---|---|
-| Nginx proxy | Reverse proxy & static assets | [`docker/nginx.conf`](docker/nginx.conf) |
-| Angular frontend | Role-based SPA dashboard | [`eventzilla-front/`](eventzilla-front/) |
-| FastAPI backend | REST API, ML inference, chatbot | [`backend/api/main.py`](backend/api/main.py) |
-| Flask service | Legacy analytics & BI endpoints | [`backend/app.py`](backend/app.py) |
-| PostgreSQL DW | Star-schema warehouse | [`scripts/dw_schema.sql`](scripts/dw_schema.sql) |
-| Airflow | Ingestion orchestration | [`etl/airflow/AUTOMATIZATION`](etl/airflow/AUTOMATIZATION) |
-| Talend ETL | Staging & warehouse transforms | [`etl/talend/`](etl/talend/) |
-| MLflow | Experiment tracking & model registry | [`backend/train*.py`](backend/train_prophet.py) |
-| Prometheus | Pipeline metrics scraper | [`docker/prometheus.yml`](docker/prometheus.yml) |
-| Grafana | Operational & business dashboards | [`docker/grafana/`](docker/) |
-| n8n | Automated retraining workflows | [`ml/n8n/`](ml/n8n/) |
-
-### End-to-End Data Flow
-
-- **Extraction** — Talend jobs (`job_master_sa`) ingest raw event, booking, and marketing data into staging
-- **Orchestration** — Airflow (`AUTOMATIZATION`) schedules and orders the transformation pipelines
-- **Warehousing** — data lands in a PostgreSQL star-schema (`Fact_Revenues` + 13 dimension tables: date, category, location, saison, beneficiary, provider, service, event, reservation, evaluation, complaint, competitor, reviews)
-- **ML & MLOps** — training scripts extract warehouse features for Prophet forecasting, statsmodels anomaly detection, and scikit-learn classification, all tracked in MLflow
-- **Serving** — FastAPI serves predictions and NL-to-SQL answers, Angular serves 4 role-based profiles, Power BI connects directly to the warehouse
-
----
-
-## 3. Data Platform — ETL & Warehouse
-
-- **Talend** — `job_master_sa` (source → staging) and `job_master_dw` (staging → warehouse) under [`etl/talend/`](etl/talend/)
-- **Airflow** — dependency trees and schedules under [`etl/airflow/AUTOMATIZATION`](etl/airflow/AUTOMATIZATION)
-- **Warehouse DDL** — [`scripts/dw_schema.sql`](scripts/dw_schema.sql): `Fact_Revenues` organized around business questions, not source schemas
-- **Prep utilities** — [`scripts/`](scripts/) (staging SQL, imputers, verification)
-
----
-
-## 4. Backend & AI Services
-
-- **FastAPI** ([`backend/api/main.py`](backend/api/main.py)) — core REST API: predictions, metrics, and NL-to-SQL chatbot responses
-- **Flask (legacy)** ([`backend/app.py`](backend/app.py)) — earlier analytics/BI endpoints, kept running behind the proxy
-- **Chatbot backend** — natural-language-to-SQL over the warehouse (Groq LLaMA 3.3-70b), auto-rendering charts so anyone can explore the data
-
----
-
-## 5. Machine Learning & MLOps
-
-- **Forecasting** — Prophet for event demand seasonality (MAPE under 15%), plus LSTM/time-series experiments ([`backend/train_prophet.py`](backend/train_prophet.py), [`backend/train_ts.py`](backend/train_ts.py))
-- **Anomaly & classification** — statsmodels detectors, scikit-learn classifiers, clustering (K-Means, DBSCAN)
-- **Tracking** — MLflow experiment tracking, model registry, automated comparison ([`backend/compare_models.py`](backend/compare_models.py))
-- **Retraining** — n8n automation workflows under [`ml/n8n/`](ml/n8n/); analysis notebooks under [`ml/notebooks/`](ml/notebooks/)
-
----
-
-## 6. Frontend & BI
-
-- **Angular SPA** ([`eventzilla-front/`](eventzilla-front/)) — 4 role-based profiles (marketing, quality, operations, business), shared header/footer/chart components, and an embedded chatbot widget
-- **Power BI** ([`pbi-dashboard/`](pbi-dashboard/)) — deep-dive exploratory analysis straight from the warehouse
-
----
-
-## 7. Infrastructure & Observability
-
-- **Deployment** — [`docker-compose.yaml`](docker-compose.yaml): 11 microservices, multi-stage builds, Nginx reverse proxy, Cloudflare Tunnel
-- **Monitoring** — Prometheus + Grafana: ML Pipeline Health, API Performance, Business KPIs, System Health, with custom PromQL alerts
-- **Helpers** — `start.bat`, `start-backend.bat`, `start-tunnel.bat`; backend config via `backend/.env.example`
-
----
-
-## 8. Getting Started
-
-```bash
-# Clone the repository
-git clone https://github.com/adriansalvadorekomo/Esprit-PABI-4ERPBI6-2526-EventZella.git
-cd Esprit-PABI-4ERPBI6-2526-EventZella
-
-# Start all services
-docker compose up -d
-
-# Access the dashboard
-open http://localhost:4200
-```
-
----
-
-## 9. Tech Stack
-
-| Category | Technologies |
+| | |
 |---|---|
-| Frontend | Angular 20, TypeScript |
-| Backend | FastAPI, Flask (legacy), Python |
-| Database | PostgreSQL (star-schema DW) |
-| ETL/Orchestration | Talend, Airflow |
-| ML | Prophet, statsmodels, scikit-learn, PyTorch, MLflow |
-| BI | Power BI |
-| Monitoring | Prometheus, Grafana |
-| Automation | n8n |
-| Infrastructure | Docker Compose, nginx, Cloudflare Tunnel |
+| **Load** | The source workbook (16 sheets) and two scraped tables (24 governorates with 2024 population, 60 public holidays) land in a SeaweedFS S3 bucket; Airbyte loads the 18 streams into `raw`, 55,260 rows, exactly the source. |
+| **Model** | dbt builds typed staging tables, a quarantine for rows that fail a rule, one star schema (`fact_reservation` + 6 dimensions) and reporting tables at other grains. 36 models, 43 tests. |
+| **Gate** | Great Expectations checks the star: no reservation lost, unique keys, valid statuses, ratings within 1–5, no personal data in the customer table. Each result is logged in `quality.gate_runs`. |
+| **Read** | Metabase: 5 dashboards as code, one per business objective plus data quality. The analysis app: a board of the four objectives, one page per objective and data quality. |
+| **Ask** | The analyst turns a question into one SELECT, checks it, runs it read-only and answers from the rows it got. `/questions` lists the questions worth asking, with today's answer and the decision each informs. |
+| **Automate** | n8n: an hourly freshness watch ("figures must not be presented" when stale or gated), a weekly decision brief, a webhook to ask the analyst. |
+| **Watch** | Prometheus and Grafana on the API and the analyst: traffic, speed, errors, how each question ended; four alert rules. |
 
----
+## The analysis app
 
-## 10. Conclusion
+The board shows the four business objectives as market tiles, each with its figure, change and trend. Below them,
+a strip says what the quality rules caught, when the figures were rebuilt and whether they passed the gate.
 
-EventZilla taught me the hardest part of data platforms isn't the models — it's the seams: getting eleven services to agree, keeping a chatbot honest against a real warehouse, and delivering it all in one `docker compose up`. I owned those seams, and I'd do it again.
+![The board: revenue, reservations, customers and marketing as market tiles; the strip says the figures passed the gate, 15 of 15 checks](docs/evidence/app-board.png)
 
-If you need someone who thinks in systems and ships integrations that hold, let's talk.
+| The analyst answers, then shows its work | `/questions`: today's answer and the decision it informs |
+|---|---|
+| ![The analyst answering which event type brings the most revenue, with its steps, the answer and a ranked bar chart](docs/evidence/app-analyst-answer.png) | ![The /questions command listing the questions worth asking per objective with their current values](docs/evidence/app-analyst-questions.png) |
+| **An injection attempt stops at the gate** | **Phone** |
+| ![A prompt-injection attempt stopped at the gate before any query](docs/evidence/app-analyst-gate.png) | ![The board on a phone](docs/evidence/app-mobile.png) |
 
----
+- **Charts:** prediction-market style. A crosshair scrubs every series, the readout follows it, and the arrow
+  keys scrub too; each chart has a table for screen readers. Value axes start at zero (ratings at the bottom of
+  their 1–5 scale), because on flat synthetic data a cropped axis would turn noise into drama.
+- **Plain words first:** p-values and correlations sit behind "how this is computed" popovers. Changes under 5 %
+  are called small.
+- **Ctrl/⌘ K:** jumps to any page, runs a suggested question or asks anything.
+- **Design:** recorded in [DESIGN.md](DESIGN.md), the product in [PRODUCT.md](PRODUCT.md).
 
-<p align="center">
-  <sub>Academic team project · My scope: integration, Docker/nginx delivery, chatbot/API fixes</sub>
-  <br />
-  <sub>👋 <a href="https://github.com/adriansalvadorekomo"><b>Adrian Salvador Ekomo</b></a> · <a href="https://linkedin.com/in/adrian-salvador-ekomo-mesi-obono-5990b8182">LinkedIn</a> · seeking a Junior Data Engineer role</sub>
-</p>
+**How the analyst stays safe** ([backend/app/assistant.py](backend/app/assistant.py)):
+1. Llama Prompt Guard 2 screens the question (an injection scored 0.9995 is stopped before any SQL).
+2. gpt-oss-120b writes one SELECT from a semantic layer of the warehouse.
+3. sqlglot refuses anything but one SELECT on the reporting schemas, refuses dangerous functions and caps the
+   rows at 200.
+4. The query runs as `analyst_ro`, which is read-only, times out after 5 s and cannot see the raw tables
+   (personal data).
+5. A failing query is repaired once and checked again; the answer is written from the rows actually returned.
+
+## Architecture
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/c4/c4-pipeline-dark.svg">
+  <img src="docs/diagrams/c4/c4-pipeline-light.svg" width="100%" alt="The daily run: the workbook and the scraped pages land in an S3 bucket; Airbyte loads 55,260 rows into the raw schema; dbt builds the staging, quarantine, star and reporting tables with 43 tests; Great Expectations checks the star (15 of 15); only then do the app, the analyst, Metabase and n8n read the figures.">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/c4/c4-star-dark.svg">
+  <img src="docs/diagrams/c4/c4-star-light.svg" width="100%" alt="The star schema: fact_reservation in the centre, one row per reservation, with keys to dim_date (role-played by the reservation and event dates), dim_event and dim_beneficiary on the left, and dim_service, dim_provider and dim_geography on the right.">
+</picture>
+
+| Container | Technology | Responsibility |
+|---|---|---|
+| Landing bucket | SeaweedFS (S3 API) | The workbook's CSVs and the scraped pages, as received |
+| Extract and load | Airbyte 2.5 (abctl) | S3 source → PostgreSQL `raw`, 18 streams |
+| Warehouse | PostgreSQL 16 | `raw` → `staging` → `marts` (the star), `reporting`, `reference`, `quality`; one database per tool on the same server |
+| Transform and test | dbt 1.10 | 36 models, 43 tests, lineage ([docs/DATA_MODEL.md](docs/DATA_MODEL.md)) |
+| Gate | Great Expectations 1.25 | `raw` checkpoint (reports source defects), `star_schema` checkpoint (gates) |
+| Orchestration | Airflow 2.10 | `eventzilla_daily` at 05:00: land and scrape, sync, build, check |
+| Dashboards | Metabase 0.65 | 5 dashboards built by `analytics/metabase/setup_dashboards.py` |
+| API | FastAPI | Indicators, `/api/questions`, the analyst `/api/ask`, `/api/status`, `/metrics` |
+| Analysis app | Angular 22, GSAP, nginx | Board, objective pages, the analyst, ⌘K palette |
+| Automation | n8n 2.50 | Freshness watch, weekly decision brief, ask webhook ([automation/n8n](automation/n8n)) |
+| Monitoring | Prometheus 3.16, Grafana 13.2 | API and analyst dashboard, 4 alert rules |
+
+The business objectives (BO1 revenue, BO2 reservations, BO3 satisfaction, BO4 marketing), the data-science
+objectives and the indicator catalogue follow the GIMSI method: [docs/GIMSI.md](docs/GIMSI.md). The star schema,
+its tests, the lineage, the Firecrawl enrichment and the model's limits: [docs/DATA_MODEL.md](docs/DATA_MODEL.md).
+
+## Data quality
+
+| Rule | Rows | What happens |
+|---|---|---|
+| Evaluation rating outside 1–5 | 312 of 12,000 | quarantined, left out of every average |
+| Marketing row that is not a calendar month | 12 of 36 | quarantined |
+| Reservation dated after its own event | 8,967 of 18,000 | kept (its revenue is real), flagged; no lead-time indicator anywhere |
+| Website day with more bookings than visitors | 6 of 365 | kept, flagged, conversion left empty |
+
+## Data science, each judged by a gate set before training
+
+| Objective | Result | Decision |
+|---|---|---|
+| Revenue forecast (BO1) | All five models pass SMAPE < 30 % and MASE < 1 on 2025; the historical mean (15.73 %) is published over SARIMA (15.58 %) because it is simpler | shown, with its error |
+| Confirmation prediction (BO2) | AUC 0.499 against 0.505 for chance | **stopped at the gate**, not served |
+| Customer segments (BO3, BO4) | silhouette 0.32 (gate 0.25): 73 % active, 27 % booked but never confirmed | shown; the second group is the follow-up target |
+
+## Evidence
+
+All screenshots come from real runs on this stack ([docs/evidence](docs/evidence)).
+
+| Airflow: the daily DAG | Airflow: task durations |
+|---|---|
+| ![Airflow graph of eventzilla_daily](docs/evidence/airflow-dag-graph.png) | ![Airflow task durations over the runs](docs/evidence/airflow-task-duration.png) |
+| **Airbyte: sync timeline** | **dbt: lineage of the fact** |
+| ![Airbyte connection timeline](docs/evidence/airbyte-sync-timeline.png) | ![dbt lineage of fact_reservation](docs/evidence/dbt-lineage-fact-reservation.png) |
+| **Metabase: revenue** | **Grafana: API and analyst** |
+| ![Metabase revenue dashboard](docs/evidence/metabase-1-revenue.png) | ![Grafana dashboard after real traffic](docs/evidence/grafana-api-and-analyst.png) |
+| **Great Expectations: the raw checkpoint** | **n8n: the decision brief's run** |
+| ![Great Expectations finding 312 ratings outside 1-5](docs/evidence/great-expectations-raw-ratings.png) | ![n8n execution of the weekly decision brief](docs/evidence/n8n-decision-brief-run.png) |
+
+## Quick start
+
+Needs Docker, [mise](https://mise.jdx.dev) and [abctl](https://docs.airbyte.com/platform/using-airbyte/getting-started/oss-quickstart) for Airbyte.
+
+```sh
+mise run setup            # .env from the example: set the passwords and keys, then run it again
+mise run up               # warehouse, landing, Airflow, Metabase, n8n, API, app, monitoring
+mise run airbyte:install  # Airbyte beside the stack, port 8006, its own HOME
+mise run airbyte:setup    # source, destination and connection
+mise run trigger          # the daily DAG now; or step by step: mise run pipeline
+mise run dashboards       # the Metabase dashboards (needs an admin API key)
+mise run n8n:import       # the n8n workflows
+```
+
+Then open the app on <http://localhost:4200>, Metabase on :3001, Airflow on :8080, Grafana on :3000 and n8n on
+:5678. Every port is bound to 127.0.0.1.
+
+## Commands
+
+`mise run help` lists all of them. The most useful:
+
+| Command | What it does |
+|---|---|
+| `mise run pipeline` | land, scrape, sync, build, quality, from the host |
+| `mise run build` | dbt: rebuild and test everything (79 nodes) |
+| `mise run quality` | Great Expectations: raw checkpoint, then the star-schema gate |
+| `mise run docs` | dbt docs with the lineage on :8081 |
+| `mise run ml` | the three data-science objectives, rewriting `ml/reports/` |
+| `mise run api` · `mise run web` | the API and the app in development |
+| `mise run check` | lint (ruff), security (Bandit), API tests, frontend build |
+
+## API
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/overview` | Headline indicators |
+| `GET /api/revenue/monthly` · `/api/revenue/by/{event_type,service,region,governorate}` | Revenue over time and by group, with share and revenue per 1,000 inhabitants |
+| `GET /api/reservations/status` · `/calendar` · `/api/conversion/weekly` | Outcomes per quarter, revenue per type of day, website conversion |
+| `GET /api/customers` · `/api/marketing` · `/api/quality` | Ratings, complaints, marketing cost, quality rules |
+| `GET /api/models` | The data-science reports with their gates |
+| `GET /api/questions` | The questions worth asking: today's answer and the decision each informs |
+| `POST /api/ask` | The analyst: answer, the SQL that ran, the rows, a chart suggestion |
+| `GET /api/status` | When the figures were rebuilt and the last gate result |
+| `GET /health` · `GET /metrics` | Liveness · Prometheus |
+
+## Layout
+
+```
+ingestion/        land the workbook, scrape the enrichment, set up Airbyte
+transformation/   dbt project: staging, quality, marts (the star), reporting, reference
+quality/          Great Expectations checkpoints
+orchestration/    Airflow image and the daily DAG
+analytics/        the EDA notebook and the Metabase dashboards as code
+ml/               the data-science objectives and their reports
+backend/          the API and the analyst
+frontend/         the analysis app
+automation/n8n/   the n8n workflows
+monitoring/       Prometheus rules and the Grafana dashboard
+infra/            warehouse init (databases, schemas, the read-only role)
+docs/             data model, GIMSI, key results, diagrams, evidence
+```
+
+## Limits and next steps
+
+These are the limits a senior review raised; details and fixes are in
+[docs/DATA_MODEL.md](docs/DATA_MODEL.md#limits-of-the-model-and-what-would-fix-them).
+
+- **Keys:** natural keys, no surrogate keys or history (SCD2). Next: surrogate keys, a −1 "unknown" member in
+  every dimension, and dbt snapshots.
+- **Integrity:** tested rather than built in. The fact is built from staging rather than from the dimensions,
+  and `governorate_id` is derived in two places. Next: build the fact from the dimensions and keep the
+  governorate on `dim_provider` only.
+- **Data:** synthetic and statistically independent across columns, so most differences between groups are
+  small; the app says so rather than ranking noise.
+- **Airbyte:** runs beside the stack (abctl), not inside it; the sync is a full refresh of a small source.
