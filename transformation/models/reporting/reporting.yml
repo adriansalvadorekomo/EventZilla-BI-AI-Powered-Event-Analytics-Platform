@@ -1,0 +1,14 @@
+version: 2
+models:
+  - name: rpt_complaint_summary
+    columns:
+      - name: provider_id
+        tests: [{ relationships: { arguments: { to: ref('dim_provider'), field: provider_id } } }]
+      - name: status
+        tests: [{ accepted_values: { arguments: { values: [open, closed] } } }]
+  - name: rpt_marketing_monthly
+    columns:
+      - { name: month_start, tests: [unique, not_null] }
+  - name: rpt_site_traffic_daily
+    columns:
+      - { name: traffic_date, tests: [unique, not_null] }

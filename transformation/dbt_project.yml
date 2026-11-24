@@ -1,0 +1,14 @@
+name: eventzilla
+version: "2.0.0"
+profile: eventzilla
+model-paths: [models]
+macro-paths: [macros]
+test-paths: [tests]
+target-path: "{{ env_var('DBT_TARGET_PATH', 'target') }}"
+models:
+  eventzilla:
+    staging: { +schema: staging, +materialized: view }
+    quality: { +schema: quality, +materialized: table }
+    marts:     { +schema: marts,     +materialized: table }   # the star: fact_reservation + 5 dimensions
+    reporting: { +schema: reporting, +materialized: table }   # other grains (daily, monthly, summaries)
+    reference: { +schema: reference, +materialized: table }   # market data with no key to a reservation
