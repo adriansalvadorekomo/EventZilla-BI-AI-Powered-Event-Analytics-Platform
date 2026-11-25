@@ -54,28 +54,19 @@ Reports: `ml/reports/*.json` (`mise run ml`).
 
 ## Statements to adapt
 
-Draft wording for the CV, LinkedIn and the portfolio. Each sentence uses only the figures above; keep the honest
-frame ("rebuilt", "synthetic data", "team project v1").
+Draft wording for the CV, LinkedIn and the portfolio, written as prose (never with the problem/action/result or
+STARL labels spelled out). Each sentence uses only the figures above; keep the honest frame: rebuilt, synthetic
+data, v1 was a team project.
 
-**PAR (Problem, Action, Result)**
-- *Problem:* the team warehouse behind our event-analytics project was lost, and v1's fact table kept 428 of 18,000
-  reservations. *Action:* rebuilt the platform with Airbyte, dbt, Great Expectations and Airflow, with one star
-  schema and a quality gate before any report. *Result:* 18,000 of 18,000 reservations kept, 79 dbt nodes and 15
-  gate checks passing, a 60-second daily run.
+**Short.** The warehouse behind our team's event-analytics project was lost, and v1's fact table had kept 428 of
+18,000 reservations. I rebuilt the platform with Airbyte, dbt, Great Expectations and Airflow, around one star
+schema and a quality gate before any report: all 18,000 reservations are kept, 79 dbt nodes and 15 gate checks
+pass, and the daily run takes about 60 seconds.
 
-**STARL (Situation, Task, Action, Result, Learning)**
-- *Situation:* a v1 BI project whose warehouse was gone and whose numbers could not be trusted.
-- *Task:* rebuild it so that every figure is checked before anyone reads it.
-- *Action:* S3 landing plus Firecrawl enrichment, Airbyte loads, a dbt star schema with 43 tests, a Great
-  Expectations gate, Airflow orchestration, Metabase dashboards as code, and an Angular app with a guarded analyst
-  assistant (read-only SQL, prompt-injection screening).
-- *Result:* 18,000 of 18,000 reservations, 4 data defects isolated and counted, 5 dashboards, Bandit at 0
-  findings.
-- *Learning:* a model that cannot beat chance (AUC 0.50) is a result: the app says so instead of showing a
-  prediction.
-
-**CARL (Context, Action, Result, Learning)**
-- *Context:* event-services analytics on a lost warehouse, rebuilt on synthetic data.
-- *Action:* designed the star schema around the business objectives (GIMSI) and gated every load.
-- *Result:* figures with their freshness and gate status on every screen ("rebuilt at, 15 of 15 checks").
-- *Learning:* the simplest forecast that passes the gate beats a marginally better complex one.
+**Long.** A v1 BI project had lost its warehouse, and its numbers could not be trusted. I rebuilt it so that every
+figure is checked before anyone reads it: files and Firecrawl-scraped reference data land in S3, Airbyte loads them,
+dbt builds a star schema with 43 tests, Great Expectations gates it and Airflow orchestrates it; Metabase dashboards
+are built as code, and an Angular app offers an analyst that runs only read-only, guarded SQL behind
+prompt-injection screening. All 18,000 reservations are kept, four data defects are isolated and counted, five
+dashboards are published, and Bandit reports no findings. A model that cannot beat chance (AUC 0.50) is a result
+too: the app says so instead of showing a prediction.

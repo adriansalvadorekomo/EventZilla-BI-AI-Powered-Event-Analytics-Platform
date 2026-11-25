@@ -4,10 +4,13 @@ An event-services marketplace's data, loaded every morning into **one star schem
 before anyone reads it**, then read by managers in an analysis app and Metabase, with an analyst that answers
 questions from the warehouse and shows its work.
 
-> **v1 (2025–26)** was an academic team project of six people (Talend, Power BI, FastAPI); my scope was
-> integration, Docker/nginx delivery and chatbot/API fixes. Its warehouse was lost. **v2 (November 2026)**
-> rebuilds the platform from the same source structure, designed and built alone. The data is **synthetic**:
-> the method and the checks are real, the figures are not company results. v1 is kept in tag
+> **v1 (Feb–May 2026)** was an ESPRIT team project of six, built together with my teammates, among them
+> [walid0202](https://github.com/walid0202), [Karim Makni](https://github.com/karimmakni0),
+> [Hejer Mnejja](https://github.com/hejermnejja) and [SASASHHJ](https://github.com/SASASHHJ), whose commits are in
+> this repository's history. The team built the Talend ETL, the Power BI dashboards and a first SQL assistant; my
+> part was integration, Docker/nginx delivery and chatbot/API fixes. That warehouse was later lost.
+> **v2 (November 2026)** is a rebuild I did alone, from the same source structure. The data is **synthetic**: the
+> method and the checks are real, the figures are not company results. v1 is kept in tag
 > [`v1-talend`](../../tree/v1-talend).
 
 <picture>
@@ -15,25 +18,23 @@ questions from the warehouse and shows its work.
   <img src="docs/diagrams/c4/c4-container-light.svg" width="100%" alt="C4 container diagram of EventZilla. Managers open the Angular analysis app, which calls the FastAPI service; the API asks Groq to screen questions and write SQL, and reads the PostgreSQL warehouse through a read-only role. Metabase reads the warehouse. Prometheus scrapes the API and Grafana reads Prometheus; n8n calls the API. Airflow lands files in a SeaweedFS S3 bucket, scrapes Firecrawl monthly and triggers Airbyte, which reads the bucket and loads the raw schema; Airflow then runs dbt and Great Expectations on the warehouse.">
 </picture>
 
-## Situation · Task · Action · Result · Learning
+## In short
 
-- **Situation.** v1 loaded an Excel workbook through Talend into a warehouse whose fact table kept **428 of
-  18,000** reservations, and nothing said so. Then the warehouse was lost.
-- **Task.** Rebuild it so that every figure is checked before a manager reads it, and say plainly what was left
-  out and why.
-- **Action.**
-  - The workbook and two public reference tables scraped with Firecrawl land in an S3 bucket.
-  - Airbyte loads them into PostgreSQL, and dbt builds one Kimball star with 43 tests.
-  - Great Expectations gates the result; Airflow runs it all at 05:00.
-  - Managers read the business objectives (GIMSI) in Metabase and in an Angular app, whose analyst runs only
-    guarded, read-only SQL.
-- **Result.**
-  - **18,000 of 18,000** reservations kept.
-  - **79 dbt nodes** and **15 of 15** gate checks pass.
-  - **4 kinds of source defect** are isolated and counted, not hidden.
-  - The daily run takes about **60 s**; Bandit reports **0** findings.
-- **Learning.** A model that predicts no better than chance (AUC 0.50) is a result too: the app says so instead
-  of showing a prediction, and the simplest forecast that passes its gate is the one published.
+EventZilla started as a team project: with my teammates, v1 loaded an Excel workbook through Talend into a
+warehouse whose fact table kept **428 of 18,000** reservations, and nothing said so. Then the warehouse was lost.
+
+I rebuilt it alone as v2, so that every figure is checked before a manager reads it, and so that what was left out, and why, is
+said plainly. The workbook and two public reference tables scraped with Firecrawl land in an S3 bucket; Airbyte
+loads them into PostgreSQL, dbt builds one Kimball star with 43 tests, Great Expectations gates the result and
+Airflow runs it all at 05:00. Managers read the business objectives (GIMSI) in Metabase and in an Angular app whose
+analyst runs only guarded, read-only SQL.
+
+All **18,000 of 18,000** reservations are kept, **79 dbt nodes** and **15 of 15** gate checks pass, and **4 kinds
+of source defect** are isolated and counted, not hidden. The daily run takes about **60 s**, and Bandit reports
+**0** findings.
+
+A model that predicts no better than chance (AUC 0.50) is a result too: the app says so instead of showing a
+prediction, and the simplest forecast that passes its gate is the one published.
 
 All figures, with the command that reproduces each: [docs/KEY_RESULTS.md](docs/KEY_RESULTS.md).
 
