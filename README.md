@@ -5,10 +5,10 @@ before anyone reads it**, then read by managers in an analysis app and Metabase,
 questions from the warehouse and shows its work.
 
 > **v1 (Feb–May 2026)** was an ESPRIT team project of six, built together with my teammates, among them
-> [walid0202](https://github.com/walid0202), [Karim Makni](https://github.com/karimmakni0),
-> [Hejer Mnejja](https://github.com/hejermnejja) and [SASASHHJ](https://github.com/SASASHHJ), whose commits are in
-> this repository's history. The team built the Talend ETL, the Power BI dashboards and a first SQL assistant; my
-> part was integration, Docker/nginx delivery and chatbot/API fixes. That warehouse was later lost.
+> [walid0202](https://github.com/walid0202), [Karim Makni](https://github.com/karimmakni0) and
+> [Hejer Mnejja](https://github.com/hejermnejja), whose commits are in this repository's history. The team built
+> the Talend ETL, the Power BI dashboards and a first SQL assistant; my part was integration, Docker/nginx delivery
+> and chatbot/API fixes. That warehouse was later lost.
 > **v2 (November 2026)** is a rebuild I did alone, from the same source structure. The data is **synthetic**: the
 > method and the checks are real, the figures are not company results. v1 is kept in tag
 > [`v1-talend`](../../tree/v1-talend).
