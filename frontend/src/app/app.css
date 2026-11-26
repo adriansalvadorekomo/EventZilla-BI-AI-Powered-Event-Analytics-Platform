@@ -40,7 +40,11 @@ main { min-width: 0; outline: none; view-transition-name: page; flex: 1; }
 .maker-link img { display: block; border-radius: 6px; }
 .maker-link strong { font-weight: 650; color: var(--ink); }
 .maker-link:hover, .maker-link:focus-visible { color: var(--data-ink); }
-.maker-note { font-size: 0.6875rem; letter-spacing: 0.02em; }
+.maker-site { display: inline-flex; align-items: baseline; gap: 0.5rem; min-height: 2rem; align-items: center; font-size: 0.75rem; letter-spacing: 0.01em;
+  color: var(--ink-3); text-decoration: none; border-radius: var(--r-control); transition: color 140ms var(--ease-out); }
+.maker-label { color: var(--ink-3); text-transform: uppercase; font-size: 0.6563rem; letter-spacing: 0.06em; }
+.maker-site { color: var(--ink-2); }
+.maker-site:hover, .maker-site:focus-visible { color: var(--data-ink); text-decoration: underline; text-underline-offset: 3px; }
 .assistant { position: sticky; top: var(--bar-h); height: calc(100dvh - var(--bar-h)); }
 
 @media (max-width: 87.5rem) { .note .years { display: none; } }
