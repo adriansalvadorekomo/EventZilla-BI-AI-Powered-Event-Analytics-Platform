@@ -145,7 +145,8 @@ function markSeen(): void {
     </dialog>
   `,
   styles: `
-    .offer { position: fixed; left: 1.25rem; bottom: 1.25rem; z-index: 35; width: min(22rem, calc(100vw - 2.5rem)); padding: 0.875rem 1rem;
+    /* beside the analyst, above its input: never on top of the dashboards or the maker's credit */
+    .offer { position: fixed; right: 1.25rem; bottom: 6.25rem; z-index: 35; width: min(22rem, calc(100vw - 2.5rem)); padding: 0.875rem 1rem;
       background: var(--plate-hover); border-color: var(--line-strong); box-shadow: 0 16px 40px rgb(0 0 0 / 0.45); font-size: 0.875rem; color: var(--ink-2); }
     .offer p { margin: 0 0 0.75rem; line-height: 1.5; }
     .offer strong { color: var(--ink); }
@@ -167,9 +168,10 @@ function markSeen(): void {
     .dots { display: inline-flex; gap: 0.375rem; }
     .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line-strong); }
     .dots i.on { background: var(--data); }
+    @media (max-width: 68.75rem) { .offer { left: 0.75rem; right: 0.75rem; bottom: 6rem; width: auto; } }
     @media (max-width: 47.5rem) {
       dialog.card, dialog.card.right { inset: auto 0.75rem 0.75rem 0.75rem; width: auto; }
-      .offer { left: 0.75rem; bottom: 0.75rem; }
+      .offer { left: 0.75rem; right: 0.75rem; bottom: 6rem; width: auto; }
     }
   `,
 })
