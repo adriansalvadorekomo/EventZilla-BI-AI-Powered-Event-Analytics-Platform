@@ -39,8 +39,8 @@ they run on every pull request.
 The v1 team project's history (Talend, April to May 2026) holds two real credentials that were committed back then
 and are no longer in `main`: an ngrok auth token (`ngrok.yml`) and one Talend-encrypted database password (Talend
 encrypts with a public default key, so treat it as readable). Both must be treated as burned: revoke the token in the
-ngrok dashboard and change that password anywhere it is still used. `.gitleaks-baseline.json` records what history
-already held so that CI fails on anything *new*; the other ~1,700 matches are generated hash keys and hostnames.
+ngrok dashboard and change that password anywhere it is still used. `.gitleaks.toml` skips only those v1 commits, so that CI
+fails on anything *new*; the other ~1,700 matches are generated hash keys and hostnames.
 
 ## Reporting a problem
 

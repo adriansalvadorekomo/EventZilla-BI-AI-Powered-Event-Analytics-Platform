@@ -1,0 +1,43 @@
+# Gitleaks configuration (loaded automatically from the repository root).
+title = "EventZilla"
+
+[extend]
+useDefault = true            # every built-in rule stays on
+
+# The 29 commits below are the v1 team project's history (Talend, n8n, ngrok, April to May 2026). They held
+# 1738 matches on 2026-11-26: Talend-generated hash keys and hostnames (false positives), one Talend-encrypted
+# password and one ngrok token (REAL: revoke / rotate them, see SECURITY.md). Only these commits are skipped; every new
+# commit is scanned in full and any finding fails CI.
+[allowlist]
+description = "v1 history as of 2026-11-26"
+commits = [
+  "000471cadb847ce49c1f976991d7ce414702e40a",
+  "0171939c6b3c56599baa742b882c7d008a078843",
+  "12e3d1a6f1ddcec66aff69af193952dae145d2f7",
+  "159c9eda0c5364e32a05b5ed7bdaae9fb8cfffa3",
+  "3143a3a936308fe2b0adb5f33835b08cb4c52259",
+  "32bd2796b08348b08577199e9a72ff39b752536b",
+  "33224082e136747fc47ca5a1caeed2ffab94edd7",
+  "3f265a1f01b393b4f2d198e381a5c5e4ba8aa3ed",
+  "47cb1d53d86aae1414787e107909a7728c64210a",
+  "54e6117c619ffb37e453345ee9ef092456d651c1",
+  "570cdc754b2686d2d57ad27c29952040ed3cd08d",
+  "574a76d29ac0914a9ba6324897afe0adb196da16",
+  "5a2addd981af101153e0538fc5aac7ac404379eb",
+  "75004777018fa36c6a7b3bf0469a3fa5ebc7ebe6",
+  "7f2c2bfc0c4d67b12421a5bd601953dc3981c3db",
+  "8182b62ec5a509fbb27ab1d2d17491b941360c01",
+  "82e4a7d6a98bd06c160e38c51be573c4de1e7dbd",
+  "94bb5430e6779a58003384fb722f61c47a85b8a0",
+  "b980149e06bc2e83c27acc5ce915af11bceab2fd",
+  "ba2ec2a15afa3d5cb307cdb45817fe1c6ef60efe",
+  "c3594182b7cc4e220addd9de29e4341c5c0478a7",
+  "ce03bff4daaaecd7c0168bce38cd7f2a5f669ffe",
+  "d36ecc7bbf99d85c5a555e01a3cb149ce3019fda",
+  "dc9abd6937281616bfc619f0b92502070931a6ca",
+  "e25a87a748822ce4f379d8c62776fdf5dcc9e6a5",
+  "e8bcf1bed68270c3a23fbb8db5498fe69a48c2c4",
+  "ec616b01230ea9d2b7431bb62ab421fbbcacb171",
+  "f5d587973c78c45bbee6d6dae5d23d4f27bccf61",
+  "f93ac5602af670becdfb7ffc72076ebc4da0a4f6",
+]
