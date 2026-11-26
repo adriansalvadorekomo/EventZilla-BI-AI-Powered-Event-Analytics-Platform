@@ -29,7 +29,18 @@
 .ask-open { display: none; }
 
 .desk { display: grid; grid-template-columns: minmax(0, 1fr) clamp(22rem, 30vw, 27rem); min-height: calc(100dvh - var(--bar-h)); }
-main { min-width: 0; outline: none; view-transition-name: page; }
+.col { min-width: 0; display: flex; flex-direction: column; min-height: calc(100dvh - var(--bar-h)); }
+main { min-width: 0; outline: none; view-transition-name: page; flex: 1; }
+
+/* the maker's credit: quiet, always at the foot of the page */
+.maker { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1.5rem;
+  margin-top: 2rem; padding: 1.125rem 1.5rem; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 0.8125rem; }
+.maker-link { display: inline-flex; align-items: center; gap: 0.625rem; min-height: 2rem; color: var(--ink-2); text-decoration: none;
+  border-radius: var(--r-control); transition: color 140ms var(--ease-out); }
+.maker-link img { display: block; border-radius: 6px; }
+.maker-link strong { font-weight: 650; color: var(--ink); }
+.maker-link:hover, .maker-link:focus-visible { color: var(--data-ink); }
+.maker-note { font-size: 0.6875rem; letter-spacing: 0.02em; }
 .assistant { position: sticky; top: var(--bar-h); height: calc(100dvh - var(--bar-h)); }
 
 @media (max-width: 87.5rem) { .note .years { display: none; } }

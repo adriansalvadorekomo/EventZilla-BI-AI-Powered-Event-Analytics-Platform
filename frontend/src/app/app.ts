@@ -4,11 +4,12 @@ import { Assistant } from './assistant/assistant';
 import { AssistantStore } from './assistant/store';
 import { Icon } from './ui/icon';
 import { PAGES, Palette } from './ui/palette';
+import { Tour } from './ui/tour';
 import { Trust } from './ui/trust';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Assistant, Palette, Icon, Trust],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Assistant, Palette, Icon, Tour, Trust],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
   styleUrl: './app.css',

@@ -25,6 +25,7 @@
         figures are not company results.
       </ez-trust>
     </span>
+    <button type="button" class="key" (click)="tour.start()">Tour</button>
     <button type="button" class="key search" (click)="palette.open()" aria-keyshortcuts="Control+K Meta+K">
       <ez-icon name="ask" [size]="14" /><span class="search-text">Go to or ask</span><kbd>{{ isMac ? '⌘' : 'Ctrl' }} K</kbd>
     </button>
@@ -33,8 +34,18 @@
 </header>
 
 <div class="desk">
-  <main id="main" tabindex="-1"><router-outlet /></main>
+  <div class="col">
+    <main id="main" tabindex="-1"><router-outlet /></main>
+    <footer class="maker">
+      <a class="maker-link" href="https://adriansalvadorekomodev.vercel.app" target="_blank" rel="noopener author">
+        <img src="maker.svg" width="26" height="26" alt="" />
+        <span>Created by <strong>Adrián Salvador Ekomo</strong></span>
+      </a>
+      <span class="maker-note mono">data &amp; analytics engineering · Leipzig</span>
+    </footer>
+  </div>
   <ez-assistant class="assistant" />
 </div>
 
+<ez-tour #tour (palette)="palette.open()" />
 <ez-palette #palette />

@@ -71,13 +71,14 @@ function niceStep(raw: number): number {
         <circle class="dot end" [attr.cx]="e.x" [attr.cy]="e.y" r="3.5" [style.--c]="series()[0].color ?? 'var(--data)'" />
       }
     </svg>
-    <table class="sr-only">
+    <!-- a table ignores height/overflow, so it sits in a clipping box: otherwise its full height leaks into the page and adds blank scroll -->
+    <div class="sr-only"><table>
       <caption>{{ summary() }}</caption>
       <tr><th scope="col">Period</th>@for (s of series(); track s.name) {<th scope="col">{{ s.name }}</th>}</tr>
       @for (l of labels(); track $index; let i = $index) {
         <tr><th scope="row">{{ formatX()(l) }}</th>@for (s of series(); track s.name) {<td>{{ show(s.values[i]) }}</td>}</tr>
       }
-    </table>
+    </table></div>
   `,
   styles: `
     :host { display: block; position: relative; min-width: 0; }
