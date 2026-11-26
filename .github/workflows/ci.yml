@@ -64,5 +64,10 @@ jobs:
           docker run --rm -v "$PWD:/src:ro" aquasec/trivy:latest fs --quiet --exit-code 1
           --scanners vuln,secret,misconfig --severity MEDIUM,HIGH,CRITICAL
           --skip-dirs /src/frontend/node_modules --skip-dirs /src/frontend/dist /src
-      - name: Gitleaks (secrets anywhere in the history)
-        run: docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:latest detect --source /repo --no-banner --redact
+      - name: Gitleaks (secrets anywhere in the history; anything new fails)
+        # .gitleaks-baseline.json lists what history already held on 2026-11-26: Talend-generated hash keys and
+        # hostnames (false positives), one Talend-encrypted password and one ngrok token (real; rotate them, see
+        # SECURITY.md). Every NEW finding is a failure.
+        run: >
+          docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:latest detect --source /repo --no-banner --redact
+          --baseline-path /repo/.gitleaks-baseline.json
