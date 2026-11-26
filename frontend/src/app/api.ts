@@ -71,13 +71,10 @@ export interface SuggestedQuestion {
 export interface Answer {
   question: string;
   answer: string;
-  sql: string | null;
   columns: string[];
   rows: (string | number | null)[][];
   chart: { type: 'line' | 'bar' | 'number' | 'table'; x?: string; y?: string } | null;
   title: string | null;
-  screen_risk: number;
-  repaired?: boolean;
   elapsed_ms: number;
 }
 

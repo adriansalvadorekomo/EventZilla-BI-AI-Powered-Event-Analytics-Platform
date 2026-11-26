@@ -1,6 +1,6 @@
 ---
 name: EventZilla analytics
-description: The business read as a board of markets, with an analyst that shows its work.
+description: The business read as a board of markets, with an analyst you can ask in plain words.
 colors:
   navy-ground: "#0b1220"
   plate: "#111a2e"
@@ -173,7 +173,7 @@ The app refuses the category default of a sidebar, a row of KPI cards and a grid
 - Orange reserved for the gate: rows a quality rule kept out, a model or question stopped.
 - Manrope for words, JetBrains Mono (tabular) for figures and nothing else.
 - Market anatomy repeated on every objective page: figure, change, chart well, ranked outcome rows.
-- Statistics behind popovers and "Show the work"; the default reading stays in plain language.
+- Statistics behind popovers; the default reading stays in plain language. The assistant never shows the query or how an answer was found.
 
 ## Colors
 
@@ -182,7 +182,7 @@ A near-monochrome navy desk with one blue data voice and three signal colours th
 ### Primary
 - **Electric Data Blue** (`data`): the data line on every chart, the end-of-line dot, the active nav underline, the selected-key border, focus rings, the caret, and the one solid key (Ask). Its area fill is `data-fill`, drawn at about 9% opacity under the main series only.
 - **Pressed Data Blue** (`data-deep`): the hover state of the solid blue key. Used nowhere else.
-- **Data Ink** (`data-ink`): blue as text on dark grounds: links, "today's answer" values in question lists, slash-command names, the query in "Show the work", hovered tile titles and arrows.
+- **Data Ink** (`data-ink`): blue as text on dark grounds: links, "today's answer" values in question lists, slash-command names, hovered tile titles and arrows.
 
 ### Secondary
 - **Slate Series** (`series-2`): every non-primary series and every non-leading outcome bar: the forecast (dashed), pending and cancelled reservations, marketing spend. It keeps comparison visible without competing with the blue line.
@@ -315,7 +315,7 @@ One ease for everything: `cubic-bezier(0.16, 1, 0.3, 1)`. Colour and border chan
 - **Do** reserve orange for the gate: rows left out, a failed check, a stopped question.
 - **Do** set every figure in JetBrains Mono with tabular numerals and every word in Manrope.
 - **Do** put charts in a recessed display well (Display Well, 1px Line, 10px corners) inside a 12px plate.
-- **Do** attach a "How this is computed" popover to every headline figure, and keep p-values, correlations, model names and the query behind popovers or "Show the work".
+- **Do** attach a "How this is computed" popover to every headline figure, and keep p-values, correlations and model names behind popovers. The query behind an answer is never shown.
 - **Do** render headline readouts settled at their final value.
 - **Do** keep the synthetic-data note visible and quiet on every page.
 
@@ -327,4 +327,4 @@ One ease for everything: `cubic-bezier(0.16, 1, 0.3, 1)`. Colour and border chan
 - **Don't** put shadows on plates or tiles; shadows are for floating layers only.
 - **Don't** crop a value axis to make flat synthetic data look dramatic.
 - **Don't** show a currency symbol; the source documents none.
-- **Don't** put technical words (fact, dimension, SQL) in the default reading; they belong in "Show the work".
+- **Don't** put technical words (fact, dimension, SQL) in the default reading, and never show the query behind an answer.

@@ -23,9 +23,18 @@ class SlidingWindow:
 
     @staticmethod
     def client_id(request: Request) -> str:
-        """The visitor behind the proxy: Vercel and nginx put the original address first in X-Forwarded-For."""
-        forwarded = request.headers.get("x-forwarded-for", "")
-        return forwarded.split(",")[0].strip() or (request.client.host if request.client else "unknown")
+        """The visitor behind the proxy, taken only from headers a client cannot forge.
+
+        Vercel sets x-vercel-forwarded-for and x-real-ip itself. Behind nginx the address nginx saw is the LAST entry
+        of X-Forwarded-For (a client can put anything in the first ones), so the last entry is used, never the first.
+        """
+        h = request.headers
+        if h.get("x-vercel-forwarded-for"):
+            return h["x-vercel-forwarded-for"].split(",")[0].strip()
+        if h.get("x-real-ip"):
+            return h["x-real-ip"].strip()
+        forwarded = [p.strip() for p in h.get("x-forwarded-for", "").split(",") if p.strip()]
+        return forwarded[-1] if forwarded else (request.client.host if request.client else "unknown")
 
     def check(self, who: str, now: float | None = None) -> tuple[bool, int]:
         """(allowed, seconds to wait). Records the hit only when allowed."""

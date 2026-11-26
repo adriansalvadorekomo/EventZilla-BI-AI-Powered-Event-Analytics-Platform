@@ -60,7 +60,7 @@ const STEPS: Step[] = [
     spot: 'ez-assistant',
     side: 'left',
     body: [
-      'Ask in plain language. The analyst checks the question, writes one read-only SQL SELECT against a semantic layer of the warehouse, runs it with a read-only database role, and shows the SQL it used so you can verify the answer.',
+      'Ask in plain language and get a short answer with the chart or table that fits. It reads from the warehouse only: it cannot change any data, and it tells you when the data cannot answer.',
       'To protect the demo, each visitor can ask 8 questions every 10 minutes.',
     ],
     actions: [{ kind: 'ask', label: 'Ask a sample question', text: 'Which event type brings the most revenue?' }],

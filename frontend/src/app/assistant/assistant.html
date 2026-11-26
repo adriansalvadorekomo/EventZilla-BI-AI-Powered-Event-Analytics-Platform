@@ -2,7 +2,7 @@
   <header class="head">
     <div>
       <h2 id="analyst-title">Analyst</h2>
-      <p>Plain questions, answered from the warehouse. The work is shown.</p>
+      <p>Plain questions, answered from the warehouse.</p>
     </div>
     <button class="key icon-only close" type="button" (click)="store.open.set(false)" aria-label="Close the analyst">
       <ez-icon name="close" />
@@ -31,15 +31,7 @@
         }
         @case ('answer') {
           <article class="msg" [attr.data-msg]="m.id">
-            <ol class="steps" aria-label="How this was answered">
-              @for (s of steps(m); track s.text) {
-                <li class="step" [class]="'step ' + s.state">
-                  <span class="mark"><ez-icon [name]="s.state === 'ok' ? 'check' : 'flat'" [size]="12" /></span>
-                  <span>{{ s.text }}</span><span class="detail">{{ s.detail }}</span>
-                </li>
-              }
-            </ol>
-            @if (m.data.title && m.data.sql) { <h3 class="title">{{ m.data.title }}</h3> }
+            @if (m.data.title) { <h3 class="title">{{ m.data.title }}</h3> }
             <p class="msg-text">{{ m.data.answer }}</p>
             @if (viz(m.data); as v) {
               <div class="viz">
@@ -56,27 +48,10 @@
                 }
               </div>
             }
-            @if (m.data.sql) {
-              <details class="work">
-                <summary><ez-icon name="chevron" [size]="14" />Show the work</summary>
-                <pre class="mono">{{ m.data.sql }}</pre>
-                <p class="muted">{{ m.data.rows.length }} row{{ m.data.rows.length === 1 ? '' : 's' }}, at most 200, read by an account that can only read the reporting tables (no personal data). Injection risk of the question: {{ (m.data.screen_risk * 100).toFixed(2) }}&nbsp;%.</p>
-              </details>
-            }
           </article>
         }
         @case ('error') {
           <article class="msg err" [class.gated]="m.stage === 'screen' || m.stage === 'guard'" [attr.data-msg]="m.id" role="status">
-            @if (steps(m).length) {
-              <ol class="steps">
-                @for (s of steps(m); track s.text) {
-                  <li class="step" [class]="'step ' + s.state">
-                    <span class="mark"><ez-icon [name]="s.state === 'stop' ? 'stop' : 'check'" [size]="12" /></span>
-                    <span>{{ s.text }}</span><span class="detail">{{ s.detail }}</span>
-                  </li>
-                }
-              </ol>
-            }
             <p class="msg-text">{{ m.message }}</p>
           </article>
         }
@@ -101,7 +76,7 @@
         @case ('help') {
           <article class="msg" [attr.data-msg]="m.id">
             <h3 class="title">What the analyst does</h3>
-            <p class="msg-text">It turns your question into one read-only query on the warehouse, checks that query before it runs, and answers from the rows it got back. It cannot change data, and it says so when the data cannot answer.</p>
+            <p class="msg-text">It answers questions about revenue, bookings, customers and marketing, from the warehouse only. It cannot change any data, and it says so when the data cannot answer.</p>
             <dl class="cmds">
               @for (c of commands; track c.name) { <dt class="mono">{{ c.name }}</dt><dd>{{ c.hint }}</dd> }
             </dl>
