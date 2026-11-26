@@ -11,10 +11,12 @@ from sqlalchemy import create_engine, text
 @cache
 def engine():
     e = os.environ
+    # a hosted warehouse (Neon on Vercel) needs TLS: EVENTZILLA_DB_SSLMODE=require; locally it stays unset
+    ssl = {"sslmode": e["EVENTZILLA_DB_SSLMODE"]} if e.get("EVENTZILLA_DB_SSLMODE") else {}
     return create_engine(
         f"postgresql+psycopg2://analyst_ro:{e['ANALYST_DB_PASSWORD']}@{e.get('EVENTZILLA_DB_HOST', 'localhost')}"
         f":{e.get('EVENTZILLA_DB_PORT', '5442')}/{e.get('EVENTZILLA_DB_NAME', 'eventzilla')}",
-        pool_pre_ping=True, pool_size=5)
+        pool_pre_ping=True, pool_size=5, connect_args=ssl)
 
 
 def _plain(value):
