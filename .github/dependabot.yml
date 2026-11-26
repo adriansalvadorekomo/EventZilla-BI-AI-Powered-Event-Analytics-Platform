@@ -1,9 +1,31 @@
 # Dependency updates arrive as pull requests, so a fixed vulnerability never waits for someone to notice it.
+# Majors that the rest of the stack cannot take yet are ignored until it can (each reason below was seen failing):
+#  - typescript 7: Angular 22 requires typescript < 7 (npm ERESOLVE, the build cannot even install)
+#  - apache/airflow 3: Airflow 3 changes the auth, DAG and CLI APIs this project's images and DAGs use
+#  - sqlalchemy 2.1: dbt-postgres, the ML scripts and the API are pinned to < 2.1 together
 version: 2
 updates:
-  - { package-ecosystem: pip, directory: /backend, schedule: { interval: weekly } }
-  - { package-ecosystem: npm, directory: /frontend, schedule: { interval: weekly } }
-  - { package-ecosystem: docker, directory: /frontend, schedule: { interval: weekly } }
-  - { package-ecosystem: docker, directory: /backend, schedule: { interval: weekly } }
-  - { package-ecosystem: docker, directory: /orchestration, schedule: { interval: weekly } }
-  - { package-ecosystem: github-actions, directory: /, schedule: { interval: weekly } }
+  - package-ecosystem: pip
+    directory: /backend
+    schedule: { interval: weekly }
+    ignore:
+      - { dependency-name: sqlalchemy, update-types: ["version-update:semver-minor", "version-update:semver-major"] }
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly }
+    ignore:
+      - { dependency-name: typescript, update-types: ["version-update:semver-major"] }
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule: { interval: weekly }
+  - package-ecosystem: docker
+    directory: /backend
+    schedule: { interval: weekly }
+  - package-ecosystem: docker
+    directory: /orchestration
+    schedule: { interval: weekly }
+    ignore:
+      - { dependency-name: apache/airflow, update-types: ["version-update:semver-major"] }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
