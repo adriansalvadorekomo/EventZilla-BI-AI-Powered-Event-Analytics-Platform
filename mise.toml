@@ -108,6 +108,7 @@ run = """
 for s in forecast_revenue predict_confirmation segment_customers; do
   {{ vars.py }} --with scikit-learn==1.9.1 --with statsmodels==0.15.0 --with pandas --with 'sqlalchemy<2.1' --with psycopg2-binary python $s.py
 done
+mkdir -p ../backend/reports && cp reports/*.json ../backend/reports/   # the copy the Vercel deployment ships
 """
 
 [tasks.eda]

@@ -1,0 +1,35 @@
+{
+  "generated_at": "2026-11-24T16:06:16+00:00",
+  "objective": "DSO2 \u00b7 predict whether a reservation will be confirmed (serves BO2)",
+  "data": {
+    "reservations": 12023,
+    "confirmed_share": 0.501,
+    "features": [
+      "event_type",
+      "service_category",
+      "region",
+      "final_price",
+      "list_price",
+      "budget",
+      "month",
+      "weekday",
+      "is_holiday",
+      "is_ramadan",
+      "booked_before"
+    ]
+  },
+  "gate": "ROC AUC >= 0.60, and above a stratified dummy by more than twice its spread",
+  "results": {
+    "gradient_boosting_auc_mean": 0.499,
+    "gradient_boosting_auc_folds": [
+      0.499,
+      0.495,
+      0.508,
+      0.496,
+      0.495
+    ],
+    "dummy_auc_mean": 0.505
+  },
+  "passes_gate": false,
+  "conclusion": "No usable signal: AUC 0.499 against 0.505 for chance. Confirmation does not depend on any feature available at booking time in this dataset, so no prediction is served."
+}

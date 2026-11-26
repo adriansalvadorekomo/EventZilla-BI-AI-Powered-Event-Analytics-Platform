@@ -46,16 +46,22 @@ Plain text only (no markdown, no quotes around numbers). Write large numbers rea
 5 % small or modest, never sharp. Amounts have no documented currency: never add a currency symbol or name."""
 
 
+UNAVAILABLE = "The analyst is unavailable. Try again in a moment."
+REFUSED = "That question can't be answered here. Try one about revenue, bookings, customers or marketing."
+
+
 class AssistantError(Exception):
-    def __init__(self, stage: str, message: str):
+    """`message` is what the visitor sees; `detail` (why, exactly) is for the server log only."""
+
+    def __init__(self, stage: str, message: str, detail: str = ""):
         super().__init__(message)
-        self.stage, self.message = stage, message
+        self.stage, self.message, self.detail = stage, message, detail or message
 
 
 def _chat(model: str, messages: list[dict], json_mode: bool = False) -> str:
     key = os.environ.get("GROQ_API_KEY")
     if not key:
-        raise AssistantError("config", "The assistant is not configured (no GROQ_API_KEY).")
+        raise AssistantError("config", UNAVAILABLE, "GROQ_API_KEY is not set")
     body = {"model": model, "messages": messages, "temperature": 0}
     if json_mode:
         body["response_format"] = {"type": "json_object"}
@@ -68,7 +74,7 @@ def _chat(model: str, messages: list[dict], json_mode: bool = False) -> str:
             raise AssistantError("busy", f"The assistant is busy; try again in {round(wait)} s.")
         time.sleep(wait)
     if r.status_code >= 400:
-        raise AssistantError("model", f"The language model returned {r.status_code}.")
+        raise AssistantError("model", UNAVAILABLE, f"model returned {r.status_code}")
     return r.json()["choices"][0]["message"]["content"]
 
 
@@ -76,14 +82,14 @@ def _plan(messages: list[dict]) -> dict:
     try:
         return json.loads(_chat(WRITER, messages, json_mode=True))
     except json.JSONDecodeError as error:
-        raise AssistantError("model", "The language model did not return a usable plan.") from error
+        raise AssistantError("model", UNAVAILABLE, "unusable plan") from error
 
 
 def _guarded(sql: str) -> str:
     try:
         return guard(sql)
     except UnsafeSQL as error:
-        raise AssistantError("guard", f"The generated query was refused: {error}.") from error
+        raise AssistantError("guard", REFUSED, f"query refused: {error}") from error
 
 
 def screen(question: str) -> float:
@@ -91,7 +97,7 @@ def screen(question: str) -> float:
     try:
         return float(_chat(SCREEN, [{"role": "user", "content": question}]).strip())
     except ValueError as error:
-        raise AssistantError("screen", "The question could not be screened.") from error
+        raise AssistantError("screen", REFUSED, "screening result unusable") from error
 
 
 def ask(question: str) -> dict:
@@ -99,7 +105,7 @@ def ask(question: str) -> dict:
     question = question.strip()[:500]
     risk = screen(question)
     if risk > INJECTION_THRESHOLD:
-        raise AssistantError("screen", "This looks like an attempt to change the assistant's instructions.")
+        raise AssistantError("screen", REFUSED, f"prompt-injection score {risk:.2f}")
 
     messages = [{"role": "system", "content": WRITE_PROMPT}, {"role": "user", "content": question}]
     plan = _plan(messages)
@@ -115,12 +121,12 @@ def ask(question: str) -> dict:
         plan = _plan([*messages, {"role": "assistant", "content": json.dumps(plan)},
                       {"role": "user", "content": f"PostgreSQL rejected that query: {detail}. Fix it; same JSON."}])
         if not plan.get("sql"):
-            raise AssistantError("run", "The question could not be turned into a working query.") from error
+            raise AssistantError("run", REFUSED, "no working query after repair") from error
         safe_sql, repaired = _guarded(plan["sql"]), True
         try:
             columns, rows = run_readonly(safe_sql)
         except DBAPIError as again:
-            raise AssistantError("run", "The question could not be turned into a working query.") from again
+            raise AssistantError("run", REFUSED, "query failed twice") from again
     preview = json.dumps({"columns": columns, "rows": rows[:50]}, default=str)
     answer = _chat(WRITER, [{"role": "system", "content": EXPLAIN_PROMPT},
                             {"role": "user", "content": f"Question: {question}\nResult: {preview}"}])

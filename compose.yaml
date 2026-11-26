@@ -12,6 +12,11 @@ x-pg: &pg
   EVENTZILLA_DB_USER: ${WAREHOUSE_USER:-eventzilla}
   EVENTZILLA_DB_PASSWORD: ${WAREHOUSE_PASSWORD:?set WAREHOUSE_PASSWORD in .env}
 
+# Containers that hold no state or need no privileges: no extra capabilities, no privilege escalation.
+x-hardened: &hardened
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+
 services:
   warehouse:
     image: postgres:16
@@ -108,28 +113,41 @@ services:
       ANALYST_DB_PASSWORD: ${ANALYST_DB_PASSWORD:?set ANALYST_DB_PASSWORD in .env}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       CORS_ORIGINS: http://localhost:4200
+      ENABLE_METRICS: "1"        # Prometheus scrapes /metrics on this network; the public deployment leaves it off
     ports: ["127.0.0.1:${API_PORT:-8000}:8000"]
+    <<: *hardened
+    read_only: true
+    tmpfs: ["/tmp"]
     depends_on:
       warehouse: { condition: service_healthy }
 
   frontend:
     image: twelvy1400/eventzilla-frontend:latest
     build: ./frontend
-    ports: ["127.0.0.1:4200:80"]
+    ports: ["127.0.0.1:4200:8080"]
+    <<: *hardened
+    read_only: true
+    tmpfs: ["/tmp"]
     depends_on: [api]
 
   prometheus:
     image: prom/prometheus:v3.16.0
     volumes: ["./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro", "./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro"]
     ports: ["127.0.0.1:9090:9090"]
+    <<: *hardened
 
   grafana:
     image: grafana/grafana:13.2.6
     environment:
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
-      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_ANONYMOUS_ENABLED: "true"           # dashboards are readable without a login...
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer          # ...and nothing more
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-${WAREHOUSE_PASSWORD}}   # never Grafana's default admin/admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
     volumes: ["./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro"]
     ports: ["127.0.0.1:3000:3000"]
+    <<: *hardened
 
 volumes: { warehouse: {}, landing: {}, n8n: {}, airflow_runtime: {} }
 

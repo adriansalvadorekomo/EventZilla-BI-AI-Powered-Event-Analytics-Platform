@@ -1,6 +1,9 @@
 """Integration tests against the running warehouse (skipped without ANALYST_DB_PASSWORD)."""
 
 import os
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -42,9 +45,17 @@ def test_models_reports_are_served(client):
     assert {"forecast_revenue", "predict_confirmation", "segment_customers"} <= set(m)
 
 
-def test_metrics_are_exposed(client):
-    text = client.get("/metrics").text
-    assert "http_requests_total" in text and "eventzilla_analyst_questions_total" in text
+def test_metrics_are_not_public_by_default(client):
+    assert client.get("/metrics").status_code == 404
+
+
+def test_metrics_are_exposed_when_enabled_for_prometheus():
+    """ENABLE_METRICS=1 is set only on the Docker network (compose.yaml); checked in a fresh interpreter."""
+    code = ("from fastapi.testclient import TestClient; from app.main import app; r = TestClient(app).get('/metrics'); "
+            "print(r.status_code, 'http_requests_total' in r.text, 'eventzilla_analyst_questions_total' in r.text)")
+    out = subprocess.run([sys.executable, "-c", code], env={**os.environ, "ENABLE_METRICS": "1"},  # noqa: S603
+                         capture_output=True, text=True, cwd=Path(__file__).parents[1], check=True)
+    assert out.stdout.split() == ["200", "True", "True"]
 
 
 def test_governorates_cover_all_revenue(client):

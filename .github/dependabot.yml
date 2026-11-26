@@ -1,0 +1,9 @@
+# Dependency updates arrive as pull requests, so a fixed vulnerability never waits for someone to notice it.
+version: 2
+updates:
+  - { package-ecosystem: pip, directory: /backend, schedule: { interval: weekly } }
+  - { package-ecosystem: npm, directory: /frontend, schedule: { interval: weekly } }
+  - { package-ecosystem: docker, directory: /frontend, schedule: { interval: weekly } }
+  - { package-ecosystem: docker, directory: /backend, schedule: { interval: weekly } }
+  - { package-ecosystem: docker, directory: /orchestration, schedule: { interval: weekly } }
+  - { package-ecosystem: github-actions, directory: /, schedule: { interval: weekly } }

@@ -92,6 +92,9 @@ button { font: inherit; color: inherit; }
 .flat { color: var(--ink-3); }
 .gate { color: var(--gate); }
 
+/* the part of the page the guided tour is explaining */
+.tour-spot { outline: 2px solid var(--data); outline-offset: 4px; border-radius: var(--r-plate); transition: outline-color 200ms var(--ease-out); }
+
 .sr-only {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;

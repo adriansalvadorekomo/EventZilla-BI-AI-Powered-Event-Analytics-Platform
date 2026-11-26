@@ -2,7 +2,7 @@
 
 An event-services marketplace's data, loaded every morning into **one star schema that is tested and checked
 before anyone reads it**, then read by managers in an analysis app and Metabase, with an analyst that answers
-questions from the warehouse and shows its work.
+questions from the warehouse, in plain words and without ever exposing the query behind the answer.
 
 > **v1 (Feb–May 2026)** was an ESPRIT team project of six, built together with my teammates, among them
 > [walid0202](https://github.com/walid0202), [Karim Makni](https://github.com/karimmakni0) and
@@ -57,7 +57,7 @@ a strip says what the quality rules caught, when the figures were rebuilt and wh
 
 ![The board: revenue, reservations, customers and marketing as market tiles; the strip says the figures passed the gate, 15 of 15 checks](docs/evidence/app-board.png)
 
-| The analyst answers, then shows its work | `/questions`: today's answer and the decision it informs |
+| The analyst answers in plain words | `/questions`: today's answer and the decision it informs |
 |---|---|
 | ![The analyst answering which event type brings the most revenue, with its steps, the answer and a ranked bar chart](docs/evidence/app-analyst-answer.png) | ![The /questions command listing the questions worth asking per objective with their current values](docs/evidence/app-analyst-questions.png) |
 | **An injection attempt stops at the gate** | **Phone** |

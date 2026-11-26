@@ -54,7 +54,7 @@ Every figure is checked before it is shown: the warehouse passes 79 dbt nodes (3
 1. One business question per page, answered in the first screen.
 2. Every figure carries its trust: definition, period, and the quality rule that touched it.
 3. Say when a difference is small; never dramatise synthetic noise.
-4. The assistant shows its work on request: the question, the query, the rows.
+4. The assistant answers in plain words with the chart or table that fits. It never shows the query or how it found the answer: that is internal, and showing it would hand an attacker the map.
 5. Same numbers everywhere: app, Metabase, documentation.
 
 ## Accessibility & Inclusion

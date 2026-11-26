@@ -12,7 +12,7 @@ select = ["E", "F", "W", "I", "B", "UP", "S", "BLE", "ISC"]
 ignore = []
 
 [tool.ruff.lint.per-file-ignores]
-"backend/tests/*" = ["S101"]   # pytest asserts
+"backend/tests/*" = ["S101", "S608"]   # pytest asserts; the security tests build hostile SQL on purpose
 
 [tool.bandit]
 # Every severity counts; nothing is skipped globally. A finding is either fixed or justified inline (# nosec Bxxx).

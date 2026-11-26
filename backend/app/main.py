@@ -5,15 +5,17 @@
 /api/overview ... /api/quality   the indicators of the four business objectives (same definitions as Metabase)
 /api/models                      the data-science objectives, from ml/reports (measured, with their gates)
 /api/ask                         the analyst assistant (needs GROQ_API_KEY)
-/health, /metrics                for Docker and Prometheus
+/health, /metrics                for Docker and Prometheus (set ENABLE_METRICS=1 for /metrics, ENABLE_DOCS=1 for /docs)
 """
 
 import json
+import logging
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from prometheus_client import Counter, Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, Field
@@ -21,13 +23,59 @@ from sqlalchemy.exc import DBAPIError
 
 from . import assistant, questions
 from .db import records, run_readonly
+from .ratelimit import ask_limiter
 
-REPORTS = Path(os.environ.get("REPORTS_DIR", Path(__file__).resolve().parents[2] / "ml" / "reports"))
+_HERE = Path(__file__).resolve()
 
-app = FastAPI(title="EventZilla analytics API", version="2.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=os.environ.get("CORS_ORIGINS", "http://localhost:4200").split(","),
+
+def _reports_dir() -> Path:
+    """REPORTS_DIR, else the copy bundled next to the app (Vercel deploys only backend/), else ml/reports (dev)."""
+    if os.environ.get("REPORTS_DIR"):
+        return Path(os.environ["REPORTS_DIR"])
+    bundled = _HERE.parents[1] / "reports"
+    return bundled if bundled.is_dir() else _HERE.parents[2] / "ml" / "reports"
+
+
+REPORTS = _reports_dir()
+
+log = logging.getLogger("eventzilla.api")
+
+
+def _flag(name: str) -> bool:
+    return os.environ.get(name, "").lower() in {"1", "true", "yes"}
+
+
+# a public deployment exposes the data endpoints and nothing else: no interactive docs, no schema, no metrics
+app = FastAPI(title="EventZilla analytics API", version="2.0.0",
+              docs_url="/docs" if _flag("ENABLE_DOCS") else None,
+              redoc_url=None, openapi_url="/openapi.json" if _flag("ENABLE_DOCS") else None)
+app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in
+                                                   os.environ.get("CORS_ORIGINS", "http://localhost:4200").split(",")
+                                                   if o.strip() and o.strip() != "*"],
                    allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
-Instrumentator().instrument(app).expose(app, include_in_schema=False)
+instrumentator = Instrumentator().instrument(app)
+if _flag("ENABLE_METRICS"):  # Prometheus scrapes it on the Docker network; never on the public internet
+    instrumentator.expose(app, include_in_schema=False)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """JSON only: no framing, no sniffing, no caching of answers, nothing may execute from these responses."""
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Cross-Origin-Resource-Policy", "same-site")
+    if request.url.path.startswith("/api/"):
+        response.headers.setdefault("Cache-Control", "no-store" if request.method != "GET" else "public, max-age=60")
+    return response
+
+
+@app.exception_handler(Exception)
+async def unexpected(request: Request, error: Exception) -> JSONResponse:
+    """Whatever goes wrong, the caller sees one plain line: no stack, no SQL, no host names."""
+    log.error("unhandled error on %s %s: %s", request.method, request.url.path, type(error).__name__, exc_info=error)
+    return JSONResponse({"detail": "Something went wrong."}, status_code=500)
 
 # how each analyst question ended, and how long a full answer took (Grafana: "API and analyst")
 ANALYST_QUESTIONS = Counter("eventzilla_analyst_questions_total", "Analyst questions by outcome", ["outcome"])
@@ -210,14 +258,30 @@ class Question(BaseModel):
     question: str = Field(min_length=3, max_length=500)
 
 
+def _public(answer: dict) -> dict:
+    """What a visitor may see of an answer. The query, the screening score and the repair step stay on the server."""
+    return {key: answer.get(key) for key in ("question", "answer", "columns", "rows", "chart", "title", "elapsed_ms")}
+
+
 @app.post("/api/ask")
-def ask(body: Question) -> dict:
+def ask(body: Question, request: Request) -> dict:
+    # Every question spends the Groq key: limit each visitor (and the whole instance) so a stranger can't drain it.
+    allowed, retry_after = ask_limiter.check(ask_limiter.client_id(request))
+    if not allowed:
+        ANALYST_QUESTIONS.labels(outcome="rate_limited").inc()
+        raise HTTPException(429, {"stage": "busy", "message": f"Too many questions. Try again in {retry_after} s."},
+                            headers={"Retry-After": str(retry_after)})
     try:
         answer = assistant.ask(body.question)
     except assistant.AssistantError as error:
         ANALYST_QUESTIONS.labels(outcome=f"stopped_{error.stage}").inc()
+        log.info("analyst stopped at %s: %s", error.stage, error.detail)  # the reason stays in the server log
         status = {"screen": 400, "guard": 400, "run": 422, "busy": 429}.get(error.stage, 503)
         raise HTTPException(status, {"stage": error.stage, "message": error.message}) from error
+    except Exception as error:  # a model or network failure: never echo it to the caller
+        ANALYST_QUESTIONS.labels(outcome="failed").inc()
+        log.error("analyst failed: %s", type(error).__name__, exc_info=error)
+        raise HTTPException(503, {"stage": "model", "message": assistant.UNAVAILABLE}) from error
     ANALYST_QUESTIONS.labels(outcome="answered" if answer["sql"] else "no_data").inc()
     ANALYST_SECONDS.observe(answer["elapsed_ms"] / 1000)
-    return answer
+    return _public(answer)

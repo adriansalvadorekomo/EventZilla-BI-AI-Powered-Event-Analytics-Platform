@@ -8,7 +8,6 @@ import { Outcome, Outcomes } from '../charts/outcomes';
 import { Icon } from '../ui/icon';
 import { AssistantStore, COMMANDS, Msg, Stage } from './store';
 
-interface Step { text: string; detail: string; state: 'ok' | 'stop' | 'skip'; }
 
 const OBJECTIVES: Record<string, string> = {
   revenue: 'Revenue', reservations: 'Reservations', customers: 'Customers', marketing: 'Marketing', quality: 'Data quality',
@@ -136,38 +135,6 @@ export class Assistant {
   }
 
   // ---- reading an answer ----
-
-  protected steps(m: Msg): Step[] {
-    if (m.kind === 'answer') {
-      const a = m.data;
-      const screened = { text: 'Question checked', detail: 'safe to answer', state: 'ok' as const };
-      if (!a.sql) return [screened, { text: 'No query', detail: 'the data cannot answer this', state: 'skip' }];
-      return [
-        screened,
-        { text: 'Query written', detail: a.repaired ? 'corrected once' : 'from the warehouse map', state: 'ok' },
-        { text: 'Query approved', detail: 'can only read', state: 'ok' },
-        { text: 'Rows found', detail: `${a.rows.length}`, state: 'ok' },
-        { text: 'Answer written', detail: `${(a.elapsed_ms / 1000).toFixed(1)} s`, state: 'ok' },
-      ];
-    }
-    if (m.kind === 'error') {
-      const order: Partial<Record<Stage, Step[]>> = {
-        screen: [{ text: 'Stopped at the gate', detail: 'before any query', state: 'stop' }],
-        guard: [
-          { text: 'Question checked', detail: 'safe to answer', state: 'ok' },
-          { text: 'Query written', detail: 'from the warehouse map', state: 'ok' },
-          { text: 'Stopped at the gate', detail: 'the query was not a safe read', state: 'stop' },
-        ],
-        run: [
-          { text: 'Question checked', detail: 'safe to answer', state: 'ok' },
-          { text: 'Query approved', detail: 'can only read', state: 'ok' },
-          { text: 'Query failed', detail: 'twice, after one repair', state: 'stop' },
-        ],
-      };
-      return order[m.stage] ?? [];
-    }
-    return [];
-  }
 
   protected viz(a: Answer): { kind: 'number'; label: string; value: string }
     | { kind: 'line'; labels: string[]; series: Series[]; format: (n: number) => string }
