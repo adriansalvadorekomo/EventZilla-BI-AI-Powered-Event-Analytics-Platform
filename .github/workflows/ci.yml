@@ -64,5 +64,6 @@ jobs:
           docker run --rm -v "$PWD:/src:ro" aquasec/trivy:latest fs --quiet --exit-code 1
           --scanners vuln,secret,misconfig --severity MEDIUM,HIGH,CRITICAL
           --skip-dirs /src/frontend/node_modules --skip-dirs /src/frontend/dist /src
-      - name: Gitleaks (secrets anywhere in the history)
+      - name: Gitleaks (secrets anywhere in the history; anything new fails)
+        # .gitleaks.toml skips only the v1 commits that held the known matches (see SECURITY.md); new commits are scanned in full
         run: docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:latest detect --source /repo --no-banner --redact

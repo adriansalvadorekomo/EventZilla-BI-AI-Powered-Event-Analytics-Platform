@@ -134,3 +134,63 @@ def test_comments_cannot_carry_text_into_the_query(sql):
     except UnsafeSQL:
         return
     assert "/*" not in out and "--" not in out and "drop" not in out.lower() and "delete" not in out.lower()
+
+
+# ruff: noqa: E501  (the battery below is one SQL statement per line, on purpose)
+# What an analyst model naturally writes. Each of these must pass: a guard that refuses ordinary questions (it once
+# refused every AND, OR and EXISTS) is a broken product, not a safe one.
+F="marts.fact_reservation"
+BATTERY = [
+ f"select count(*) from {F} where status = 'confirmed' and reservation_date >= '2025-01-01' and reservation_date <= '2025-12-31'",
+ f"select count(*) from {F} where reservation_date between '2025-01-01' and '2025-12-31' and is_confirmed",
+ f"select count(*) from {F} where status = 'confirmed' or status = 'pending'",
+ f"select count(*) from {F} where not is_cancelled",
+ f"select count(*) from {F} where status in ('confirmed','pending') and final_price > 100",
+ f"select count(*) from {F} where status not in ('cancelled')",
+ f"select count(*) from {F} where rating_avg is not null and rating_avg is not null",
+ "select * from marts.dim_event where event_title like 'W%' or event_title ilike '%party%'",
+ f"select count(*) from {F} f where exists (select 1 from marts.dim_event e where e.event_id = f.event_id and e.event_type = 'Wedding')",
+ f"select count(*) from {F} f where f.event_id in (select event_id from marts.dim_event where budget > 5000)",
+ "select event_type, count(distinct event_id) as n from marts.dim_event group by 1 having count(*) > 10 order by 2 desc",
+ f"select round(avg(final_price)::numeric, 2), round(100.0 * sum(revenue) / nullif(sum(list_price),0), 1) from {F}",
+ f"select date_trunc('month', reservation_date)::date as m, sum(revenue) from {F} group by 1 order by 1",
+ f"select extract(year from reservation_date)::int as y, extract(quarter from reservation_date) q, sum(revenue) from {F} group by 1,2",
+ f"select to_char(reservation_date, 'YYYY-MM') as ym, count(*) from {F} group by 1 order by 1",
+ f"select year_month, sum(revenue) from {F} f join marts.dim_date d on f.reservation_date = d.date_day where d.year = 2025 and d.is_weekend group by 1",
+ f"select d.season, avg(f.revenue) from {F} f join marts.dim_date d using (reservation_date) group by 1",
+ f"select g.region, sum(f.revenue) from {F} f join marts.dim_geography g on f.governorate_id = g.governorate_id group by 1 order by 2 desc limit 10",
+ f"select year_month, revenue, lag(revenue) over (order by year_month) as prev, revenue - lag(revenue) over (order by year_month) as diff from (select d.year_month, sum(f.revenue) as revenue from {F} f join marts.dim_date d on f.reservation_date = d.date_day group by 1) t",
+ f"select event_id, row_number() over (partition by provider_id order by final_price desc) rn from {F}",
+ f"select ntile(4) over (order by final_price) from {F}",
+ f"select percentile_cont(0.5) within group (order by final_price) as median, percentile_cont(0.9) within group (order by final_price) p90 from {F}",
+ f"select corr(final_price, rating_avg) from {F}",
+ f"select stddev(final_price), variance(final_price) from {F}",
+ f"select sum(revenue) filter (where status = 'confirmed') from {F}",
+ f"select sum(case when status='confirmed' then 1 else 0 end)::float / count(*) from {F}",
+ f"select coalesce(rating_avg, 0) + 1 as r, final_price * 1.2 - 3 as p, final_price / 2 as h, final_price % 7 as m, -final_price as n from {F}",
+ f"select greatest(final_price, list_price), least(final_price, list_price), abs(final_price - list_price), ceil(final_price), floor(final_price) from {F}",
+ f"select upper(status), lower(status), length(status), substring(status from 1 for 3), trim(status), status || '-x' from {F}",
+ f"select * from {F} where reservation_date >= current_date - interval '30 days'",
+ f"select * from {F} where reservation_date > now() - interval '1 year'",
+ f"select distinct status from {F}",
+ f"select status, count(*) from {F} group by status union all select 'total', count(*) from {F}",
+ "select region from marts.dim_geography except select region from marts.dim_geography where region = 'North East'",
+ f"with a as (select event_id, sum(revenue) r from {F} group by 1), b as (select * from a where r > 0) select count(*) from b",
+ f"select * from (select event_id, sum(revenue) r from {F} group by 1) s where r > 100 order by r desc",
+ f"select f.*, e.event_type from {F} f left join marts.dim_event e on e.event_id = f.event_id where e.event_id is null",
+ f"select count(*) from {F} f inner join marts.dim_service s on s.service_id = f.service_id right join marts.dim_provider p on p.provider_id = s.provider_id",
+ f"select e.event_type, round(avg(f.revenue)::numeric, 0) as \"Average revenue\" from {F} f join marts.dim_event e using (event_id) group by e.event_type order by 2 desc",
+ "select spend_type, sum(marketing_spend) from reporting.rpt_marketing_monthly where month_start >= '2023-01-01' group by 1",
+ "select count(*) from quality.rejected_evaluations",
+ f"select status, count(*) as n, round(100.0 * count(*) / sum(count(*)) over (), 1) as pct from {F} group by 1",
+ f"select sum(revenue) over (order by reservation_date rows between unbounded preceding and current row) from {F}",
+ f"select first_value(revenue) over (partition by event_id order by reservation_date), last_value(revenue) over (partition by event_id order by reservation_date) from {F}",
+ f"select cast(final_price as integer), cast(reservation_date as text), final_price::bigint, reservation_date::timestamp from {F}",
+ f"select count(*) from {F} where final_price is distinct from list_price",
+ f"select * from {F} order by final_price desc nulls last limit 5",
+]
+
+
+@pytest.mark.parametrize("sql", BATTERY)
+def test_a_realistic_analyst_query_passes(sql):
+    guard(sql)

@@ -33,12 +33,14 @@ ALLOWED_FUNCTIONS = frozenset({
     # aggregates
     "count", "sum", "avg", "min", "max", "corr", "median", "stddev", "stddev_pop", "stddev_samp", "variance",
     "var_pop", "var_samp", "percentile_cont", "percentile_disc", "regr_slope", "regr_intercept", "regr_r2",
+    # logic (sqlglot classes the operators AND / OR / EXISTS as functions)
+    "and", "or", "xor", "exists",
     # scalar
     "round", "abs", "ceil", "ceiling", "floor", "trunc", "sqrt", "power", "pow", "ln", "log", "sign", "mod",
     "greatest", "least", "coalesce", "nullif", "case", "if", "cast", "extract", "lower", "upper", "length",
     "substring", "trim", "concat", "split_part",
     # dates
-    "timestamp_trunc", "date_trunc", "time_to_str", "to_char", "date_part", "current_date",
+    "timestamp_trunc", "date_trunc", "time_to_str", "to_char", "date_part", "current_date", "current_timestamp",
     "date_diff", "datediff", "date_add", "date_sub",
     # windows
     "row_number", "rank", "dense_rank", "ntile", "lag", "lead", "first_value", "last_value", "nth_value",

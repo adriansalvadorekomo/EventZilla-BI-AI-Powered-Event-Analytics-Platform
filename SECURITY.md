@@ -34,6 +34,14 @@ they run on every pull request.
 - Secrets: only in `.env` (git-ignored). The deployed API receives only the two it needs (`ANALYST_DB_PASSWORD`,
   `GROQ_API_KEY`) and connects with the read-only role, never as the database owner.
 
+## Known history
+
+The v1 team project's history (Talend, April to May 2026) holds two real credentials that were committed back then
+and are no longer in `main`: an ngrok auth token (`ngrok.yml`) and one Talend-encrypted database password (Talend
+encrypts with a public default key, so treat it as readable). Both must be treated as burned: revoke the token in the
+ngrok dashboard and change that password anywhere it is still used. `.gitleaks.toml` skips only those v1 commits, so that CI
+fails on anything *new*; the other ~1,700 matches are generated hash keys and hostnames.
+
 ## Reporting a problem
 
 Open a private security advisory on GitHub (Security tab of this repository) or write to
