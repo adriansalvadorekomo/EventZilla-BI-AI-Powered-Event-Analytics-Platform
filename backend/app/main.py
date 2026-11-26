@@ -12,7 +12,7 @@ import json
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import Counter, Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -21,8 +21,20 @@ from sqlalchemy.exc import DBAPIError
 
 from . import assistant, questions
 from .db import records, run_readonly
+from .ratelimit import ask_limiter
 
-REPORTS = Path(os.environ.get("REPORTS_DIR", Path(__file__).resolve().parents[2] / "ml" / "reports"))
+_HERE = Path(__file__).resolve()
+
+
+def _reports_dir() -> Path:
+    """REPORTS_DIR, else the copy bundled next to the app (Vercel deploys only backend/), else ml/reports (dev)."""
+    if os.environ.get("REPORTS_DIR"):
+        return Path(os.environ["REPORTS_DIR"])
+    bundled = _HERE.parents[1] / "reports"
+    return bundled if bundled.is_dir() else _HERE.parents[2] / "ml" / "reports"
+
+
+REPORTS = _reports_dir()
 
 app = FastAPI(title="EventZilla analytics API", version="2.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=os.environ.get("CORS_ORIGINS", "http://localhost:4200").split(","),
@@ -211,7 +223,13 @@ class Question(BaseModel):
 
 
 @app.post("/api/ask")
-def ask(body: Question) -> dict:
+def ask(body: Question, request: Request) -> dict:
+    # Every question spends the Groq key: limit each visitor (and the whole instance) so a stranger can't drain it.
+    allowed, retry_after = ask_limiter.check(ask_limiter.client_id(request))
+    if not allowed:
+        ANALYST_QUESTIONS.labels(outcome="rate_limited").inc()
+        raise HTTPException(429, {"stage": "busy", "message": f"Too many questions. Try again in {retry_after} s."},
+                            headers={"Retry-After": str(retry_after)})
     try:
         answer = assistant.ask(body.question)
     except assistant.AssistantError as error:

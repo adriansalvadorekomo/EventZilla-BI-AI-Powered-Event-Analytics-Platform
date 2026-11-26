@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-11-24T16:07:02+00:00",
+  "objective": "DSO3 \u00b7 segment customers by behaviour (serves BO3 and BO4)",
+  "data": {
+    "customers": 4190,
+    "features": [
+      "events",
+      "reservations",
+      "confirmed_revenue",
+      "confirmed_share",
+      "rating",
+      "complaints"
+    ]
+  },
+  "gate": "silhouette >= 0.25",
+  "silhouette_by_k": {
+    "2": 0.321,
+    "3": 0.272,
+    "4": 0.262,
+    "5": 0.239,
+    "6": 0.24
+  },
+  "chosen_k": 2,
+  "silhouette": 0.321,
+  "passes_gate": true,
+  "segments": [
+    {
+      "segment": 1,
+      "name": "Active customers",
+      "action": "book and confirm regularly: the base to retain",
+      "customers": 3076,
+      "share": 0.734,
+      "median": {
+        "events": 3.0,
+        "reservations": 4.0,
+        "confirmed_revenue": 12797.0,
+        "confirmed_share": 0.4,
+        "rating": 3.0,
+        "complaints": 0.0
+      }
+    },
+    {
+      "segment": 0,
+      "name": "Not yet converted",
+      "action": "booked but never confirmed: the target for conversion follow-ups",
+      "customers": 1114,
+      "share": 0.266,
+      "median": {
+        "events": 2.0,
+        "reservations": 2.0,
+        "confirmed_revenue": 0.0,
+        "confirmed_share": 0.0,
+        "rating": 3.0,
+        "complaints": 0.0
+      }
+    }
+  ],
+  "conclusion": "2 segments, distinct enough to target separately (silhouette 0.32)."
+}
