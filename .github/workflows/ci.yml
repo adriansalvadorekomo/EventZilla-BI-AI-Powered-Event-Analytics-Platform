@@ -42,6 +42,9 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Production build (type-checks every template)
         run: npx ng build
+      - name: No inline script in index.html (the Content-Security-Policy is script-src 'self')
+        # Angular's critical-CSS inlining adds an inline onload handler; the CSP blocks it and the page loses its stylesheet
+        run: "! grep -Eqi 'onload=|<script>' dist/eventzilla-frontend/browser/index.html"
 
   security:
     # Fails the pull request on a known-vulnerable dependency, a committed secret, or an insecure Dockerfile.

@@ -1,5 +1,6 @@
 """The analyst assistant: a business question in, a checked answer out.
 
+0. shape    question_guard: a question written as SQL (or a schema, catalog name, comment, second statement) is refused
 1. screen   Llama Prompt Guard 2 scores the question for prompt injection (blocked above 0.5)
 2. write    gpt-oss-120b writes one SELECT against the semantic layer, and proposes a chart
 3. guard    sql_guard: one read-only SELECT on the analytics schemas, row limit
@@ -18,6 +19,7 @@ import httpx
 from sqlalchemy.exc import DBAPIError
 
 from .db import run_readonly
+from .question_guard import looks_like_code
 from .semantic import SEMANTIC_LAYER
 from .sql_guard import UnsafeSQL, guard
 
@@ -103,6 +105,8 @@ def screen(question: str) -> float:
 def ask(question: str) -> dict:
     started = time.perf_counter()
     question = question.strip()[:500]
+    if looks_like_code(question):  # typed SQL would just be passed through by the model: refuse before it is read
+        raise AssistantError("screen", REFUSED, "the question looks like code")
     risk = screen(question)
     if risk > INJECTION_THRESHOLD:
         raise AssistantError("screen", REFUSED, f"prompt-injection score {risk:.2f}")
